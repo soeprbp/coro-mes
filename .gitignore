@@ -1,0 +1,72 @@
+.DS_Store
+Thumbs.db
+*.user
+*.suo
+*.cache
+*.log
+.vs/
+.vscode/
+bin/
+obj/
+*.nupkg
+packages/
+TestResults/
+*.orig
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# Build outputs
+dist/
+out/
+publish/
+**/bin/
+**/obj/
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# Secrets (never commit)
+*.pfx
+*.key
+*.p12
+*.pem
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS
+Thumbs.db
+desktop.ini
+
+# NuGet
+*.nupkg
+nuget-packages/
+
+# Test results
+TestResults/
+coverage/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# EDI files (may contain sensitive data)
+data/edi/inbound/*
+data/edi/outbound/*
+!data/edi/inbound/.gitkeep
+!data/edi/outbound/.gitkeep

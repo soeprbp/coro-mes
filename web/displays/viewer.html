@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoroMES Display</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { 
+            height: 100%; 
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #0a0a0a;
+            color: white;
+        }
+        .display-container {
+            height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* 16:9 aspect ratio container */
+        .aspect-16-9 {
+            aspect-ratio: 16 / 9;
+            width: 100%;
+            max-height: calc(100vh - 120px);
+            margin: 0 auto;
+            position: relative;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .display-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            background: rgba(0,0,0,0.3);
+            border-bottom: 2px solid #333;
+        }
+        .display-title { font-size: 1.5rem; font-weight: bold; }
+        .display-time { font-size: 1.2rem; color: #00d4ff; }
+        
+        .display-content {
+            flex: 1;
+            padding: 30px;
+            display: grid;
+            gap: 20px;
+        }
+        
+        /* Display Types */
+        .display-oee { grid-template-columns: 1fr 1fr 1fr 2fr; }
+        .display-production { grid-template-columns: 1fr 1fr; }
+        .display-dashboard { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, 1fr); }
+        
+        /* Cards */
+        .metric-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .metric-card.highlight {
+            background: linear-gradient(135deg, rgba(0,212,255,0.2) 0%, rgba(0,100,200,0.2) 100%);
+            border: 2px solid #00d4ff;
+        }
+        .metric-value { font-size: 3rem; font-weight: bold; margin: 10px 0; }
+        .metric-label { font-size: 1rem; color: #aaa; text-transform: uppercase; }
+        .metric-unit { font-size: 1rem; color: #888; }
+        
+        .metric-good { color: #28a745; }
+        .metric-warning { color: #ffc107; }
+        .metric-danger { color: #dc3545; }
+        
+        /* Gauge */
+        .gauge-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+        }
+        .gauge-bg {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(#333 0deg, #333 360deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .gauge-value {
+            position: absolute;
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        
+        /* Equipment List */
+        .equipment-list {
+            display: grid;
+            gap: 10px;
+        }
+        .equipment-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+        }
+        .equipment-status {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .status-running { background: #28a745; box-shadow: 0 0 10px #28a745; }
+        .status-idle { background: #ffc107; }
+        .status-down { background: #dc3545; }
+        
+        /* Bar chart */
+        .bar-chart { display: flex; align-items: flex-end; gap: 10px; height: 150px; }
+        .bar {
+            flex: 1;
+            background: linear-gradient(to top, #00d4ff, #0064c8);
+            border-radius: 5px 5px 0 0;
+            position: relative;
+        }
+        .bar-label {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            color: #888;
+        }
+        .bar-value {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+        }
+        
+        /* Footer */
+        .display-footer {
+            padding: 10px 30px;
+            background: rgba(0,0,0,0.3);
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        /* Animation for updates */
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .updating { animation: pulse 1s; }
+        
+        /* Fullscreen mode */
+        :fullscreen .display-container { padding: 0; }
+        :fullscreen .aspect-16-9 { max-height: 100vh; border-radius: 0; }
+    </style>
+</head>
+<body>
+    <div class="display-container">
+        <div class="aspect-16-9">
+            <div class="display-header">
+                <div class="display-title" id="displayTitle">Production Dashboard</div>
+                <div class="display-time">
+                    <span id="currentTime"></span>
+                    <i class="bi bi-clock"></i>
+                </div>
+            </div>
+            
+            <div class="display-content" id="displayContent">
+                <!-- Dynamic content loaded here -->
+            </div>
+            
+            <div class="display-footer">
+                <div id="displaySubtitle">CoroMES Display</div>
+                <div id="lastUpdate">Last updated: --</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get display ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const displayId = urlParams.get('id') || 'default';
+        const apiBaseUrl = urlParams.get('api') || 'http://localhost:5000';
+        
+        let displayConfig = null;
+        let updateInterval = null;
+        
+        // Load display configuration
+        async function loadDisplayConfig() {
+            try {
+                const response = await fetch(`${apiBaseUrl}/api/v1/displays/${displayId}`);
+                displayConfig = await response.json();
+            } catch (e) {
+                displayConfig = getDefaultDisplayConfig();
+            }
+            render();
+            startAutoRefresh();
+        }
+        
+        function getDefaultDisplayConfig() {
+            return {
+                title: 'Production Overview',
+                type: 'oee',
+                refreshSeconds: 5,
+                equipment: []
+            };
+        }
+        
+        function render() {
+            document.getElementById('displayTitle').textContent = displayConfig.title || 'Production Dashboard';
+            
+            switch(displayConfig.type) {
+                case 'oee': renderOEE(); break;
+                case 'production': renderProduction(); break;
+                case 'quality': renderQuality(); break;
+                case 'equipment': renderEquipment(); break;
+                case 'dashboard': renderDashboard(); break;
+                default: renderOEE();
+            }
+            
+            document.getElementById('lastUpdate').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+        }
+        
+        function renderOEE() {
+            document.getElementById('displayContent').className = 'display-content display-oee';
+            document.getElementById('displayContent').innerHTML = `
+                <div class="metric-card highlight">
+                    <div class="metric-label">OEE</div>
+                    <div class="metric-value metric-good" id="oeeValue">85%</div>
+                    <div class="metric-unit">Overall Equipment Effectiveness</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Availability</div>
+                    <div class="metric-value" id="availability">92%</div>
+                    <div class="metric-unit">Run Time / Planned Time</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Performance</div>
+                    <div class="metric-value" id="performance">95%</div>
+                    <div class="metric-unit">Actual / Target</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Quality</div>
+                    <div class="metric-value" id="quality">98%</div>
+                    <div class="metric-unit">Good Parts / Total Parts</div>
+                    <div style="margin-top: 15px;">
+                        <div class="bar-chart" id="oeeChart"></div>
+                    </div>
+                </div>
+            `;
+            renderBarChart('oeeChart', [85, 92, 95, 98, 87, 90]);
+        }
+        
+        function renderProduction() {
+            document.getElementById('displayContent').className = 'display-content display-production';
+            document.getElementById('displayContent').innerHTML = `
+                <div class="metric-card">
+                    <div class="metric-label">Units Today</div>
+                    <div class="metric-value" id="unitsToday">12,450</div>
+                    <div class="metric-unit">Target: 15,000</div>
+                    <div style="width: 100%; height: 20px; background: #333; border-radius: 10px; margin-top: 20px;">
+                        <div style="width: 83%; height: 100%; background: linear-gradient(90deg, #00d4ff, #0064c8); border-radius: 10px;"></div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Target vs Actual</div>
+                    <div class="equipment-list" id="productionList"></div>
+                </div>
+            `;
+            
+            // Render equipment list
+            const listData = [
+                { name: 'Corrugator Line 1', target: 5000, actual: 4800, status: 'running' },
+                { name: 'Bender A1', target: 3000, actual: 2900, status: 'running' },
+                { name: 'Bender A2', target: 3000, actual: 2100, status: 'idle' },
+                { name: 'Cut Line 1', target: 2500, actual: 2450, status: 'running' }
+            ];
+            
+            document.getElementById('productionList').innerHTML = listData.map(item => `
+                <div class="equipment-item">
+                    <div style="display: flex; align-items: center;">
+                        <div class="equipment-status status-${item.status}"></div>
+                        <span>${item.name}</span>
+                    </div>
+                    <span>${item.actual.toLocaleString()} / ${item.target.toLocaleString()}</span>
+                </div>
+            `).join('');
+        }
+        
+        function renderQuality() {
+            document.getElementById('displayContent').className = 'display-content display-dashboard';
+            document.getElementById('displayContent').innerHTML = `
+                <div class="metric-card">
+                    <div class="metric-label">Pass Rate</div>
+                    <div class="metric-value metric-good">98.2%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Fail Rate</div>
+                    <div class="metric-value metric-danger">1.8%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Inspections Today</div>
+                    <div class="metric-value">156</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Open NCRs</div>
+                    <div class="metric-value metric-warning">3</div>
+                </div>
+                <div class="metric-card" style="grid-column: span 2;">
+                    <div class="metric-label">Quality Trend (Last 7 Days)</div>
+                    <div class="bar-chart" id="qualityChart"></div>
+                </div>
+                <div class="metric-card" style="grid-column: span 2;">
+                    <div class="metric-label">Top Defects</div>
+                    <div class="equipment-list">
+                        <div class="equipment-item"><span>Dimensional</span><span class="text-warning">12</span></div>
+                        <div class="equipment-item"><span>Surface Finish</span><span class="text-warning">8</span></div>
+                        <div class="equipment-item"><span>Alignment</span><span class="text-warning">5</span></div>
+                    </div>
+                </div>
+            `;
+            renderBarChart('qualityChart', [97, 98, 96, 99, 98, 97, 98], ['M', 'T', 'W', 'T', 'F', 'S', 'S']);
+        }
+        
+        function renderEquipment() {
+            document.getElementById('displayContent').className = 'display-content';
+            document.getElementById('displayContent').innerHTML = `
+                <div class="equipment-list" style="grid-template-columns: 1fr 1fr; gap: 15px;" id="equipmentGrid">
+                </div>
+            `;
+            
+            const equipment = [
+                { name: 'Corrugator Line 1', status: 'Running', temp: 145, vibration: 2.1, uptime: 98.5 },
+                { name: 'Bender Unit A1', status: 'Running', temp: 89, vibration: 1.8, uptime: 96.2 },
+                { name: 'Bender Unit A2', status: 'Idle', temp: 45, vibration: 0, uptime: 0 },
+                { name: 'Conveyor Line 1', status: 'Running', temp: 67, vibration: 0.5, uptime: 99.1 },
+                { name: 'Cut Station 1', status: 'Running', temp: 112, vibration: 2.3, uptime: 94.8 },
+                { name: 'Packaging Line', status: 'Down', temp: 35, vibration: 0, uptime: 0 }
+            ];
+            
+            document.getElementById('equipmentGrid').innerHTML = equipment.map(eq => `
+                <div class="metric-card">
+                    <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 15px;">
+                        <span style="font-size: 1.2rem; font-weight: bold;">${eq.name}</span>
+                        <span class="badge bg-${eq.status === 'Running' ? 'success' : eq.status === 'Idle' ? 'warning' : 'danger'}">${eq.status}</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; width: 100%;">
+                        <div style="text-align: center;">
+                            <div class="metric-label" style="font-size: 0.7rem;">Temp °F</div>
+                            <div style="font-size: 1.5rem;">${eq.temp}</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div class="metric-label" style="font-size: 0.7rem;">Vibration</div>
+                            <div style="font-size: 1.5rem;">${eq.vibration}</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div class="metric-label" style="font-size: 0.7rem;">Uptime %</div>
+                            <div style="font-size: 1.5rem; color: ${eq.uptime > 95 ? '#28a745' : '#ffc107'};">${eq.uptime}%</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function renderDashboard() {
+            renderOEE();
+            renderProduction();
+        }
+        
+        function renderBarChart(containerId, data, labels = null) {
+            const max = Math.max(...data);
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            container.innerHTML = data.map((val, i) => `
+                <div class="bar" style="height: ${(val / max) * 100}%;">
+                    <span class="bar-value">${val}%</span>
+                    ${labels ? `<span class="bar-label">${labels[i]}</span>` : ''}
+                </div>
+            `).join('');
+        }
+        
+        function startAutoRefresh() {
+            const interval = (displayConfig?.refreshSeconds || 5) * 1000;
+            updateInterval = setInterval(async () => {
+                await fetchDisplayData();
+                render();
+            }, interval);
+        }
+        
+        async function fetchDisplayData() {
+            try {
+                const response = await fetch(`${apiBaseUrl}/api/v1/reporting/v1/oee`);
+                const data = await response.json();
+                // Update with real data if available
+                if (data.data && data.data.length > 0) {
+                    // Use actual OEE data
+                }
+            } catch (e) {
+                console.log('Using demo data');
+            }
+        }
+        
+        // Update time
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString();
+        }
+        
+        // Fullscreen on click
+        document.querySelector('.aspect-16-9').addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        });
+        
+        // Initialize
+        updateTime();
+        setInterval(updateTime, 1000);
+        loadDisplayConfig();
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'f' || e.key === 'F') {
+                document.querySelector('.aspect-16-9').click();
+            }
+            if (e.key === 'r' || e.key === 'R') {
+                loadDisplayConfig();
+            }
+        });
+    </script>
+</body>
+</html>

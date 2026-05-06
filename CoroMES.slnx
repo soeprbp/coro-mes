@@ -1,0 +1,30 @@
+<Solution>
+  <Folder Name="/industrial/">
+    <Project Path="industrial/CoroMES.Industrial.EthernetIp/CoroMES.Industrial.EthernetIp.csproj" />
+    <Project Path="industrial/CoroMES.Industrial.Mqtt/CoroMES.Industrial.Mqtt.csproj" />
+    <Project Path="industrial/CoroMES.Industrial.OpcUa/CoroMES.Industrial.OpcUa.csproj" />
+  </Folder>
+  <Folder Name="/integration/">
+    <Project Path="integration/CoroMES.Integration.IIoT/CoroMES.Integration.IIoT.csproj" />
+    <Project Path="integration/CoroMES.Integration.TrueCommerce/CoroMES.Integration.TrueCommerce.csproj" />
+    <Project Path="integration/CoroMES.Integration.Upkeep/CoroMES.Integration.Upkeep.csproj" />
+  </Folder>
+  <Folder Name="/modules/">
+    <Project Path="modules/CoroMES.Equipment/CoroMES.Equipment.csproj" />
+    <Project Path="modules/CoroMES.Inventory/CoroMES.Inventory.csproj" />
+    <Project Path="modules/CoroMES.Production/CoroMES.Production.csproj" />
+    <Project Path="modules/CoroMES.Quality/CoroMES.Quality.csproj" />
+    <Project Path="modules/CoroMES.Workforce/CoroMES.Workforce.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/CoroMES.Api/CoroMES.Api.csproj" />
+    <Project Path="src/CoroMES.Application/CoroMES.Application.csproj" />
+    <Project Path="src/CoroMES.Core/CoroMES.Core.csproj" />
+    <Project Path="src/CoroMES.Infrastructure/CoroMES.Infrastructure.csproj" />
+    <Project Path="src/CoroMES.Reporting/CoroMES.Reporting.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CoroMES.IntegrationTests/CoroMES.IntegrationTests.csproj" />
+    <Project Path="tests/CoroMES.UnitTests/CoroMES.UnitTests.csproj" />
+  </Folder>
+</Solution>

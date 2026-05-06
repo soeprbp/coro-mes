@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: coromes-postgres
+    environment:
+      POSTGRES_DB: coromes
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: changeme
+    ports:
+      - "5432:5432"
+    volumes:
+      - coromes-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - coromes-network
+
+  # Optional: MQTT Broker (Mosquitto)
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: coromes-mqtt
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./infra/docker/mqtt/config:/mosquitto/config
+      - mqtt-data:/mosquitto/data
+      - mqtt-log:/mosquitto/log
+    environment:
+      MOSQUITTO_USERNAME: ""
+      MOSQUITTO_PASSWORD: ""
+    networks:
+      - coromes-network
+
+  # CoroMES API
+  api:
+    build:
+      context: .
+      dockerfile: src/CoroMES.Api/Dockerfile
+    container_name: coromes-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5000
+      - DatabaseProvider=postgres
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=coromes;Username=postgres;Password=changeme
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mqtt:
+        condition: service_started
+    networks:
+      - coromes-network
+    restart: unless-stopped
+
+networks:
+  coromes-network:
+    driver: bridge
+
+volumes:
+  coromes-data:
+  mqtt-data:
+  mqtt-log:

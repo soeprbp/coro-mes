@@ -1,0 +1,86 @@
+# CoroMES Configuration
+
+database:
+  host: localhost
+  port: 5432
+  name: coromes
+  user: postgres
+  password: changeme
+
+app:
+  host: 0.0.0.0
+  port: 5000
+  environment: development
+
+reporting:
+  enabled: true
+  basePath: "/reporting/v1"
+  defaultPageSize: 1000
+  maxPageSize: 10000
+  cacheDurationSeconds: 60
+  allowCsvExport: true
+
+api:
+  enabled: true
+  basePath: "/api/v1"
+  enableSwagger: true
+
+# TrueCommerce EDI Integration
+truecommerce:
+  enabled: false
+  partnerId: ""
+  connectionType: "AS2"
+  inboundFolder: "./data/edi/inbound"
+  outboundFolder: "./data/edi/outbound"
+  archiveFolder: "./data/edi/archive"
+
+# Upkeep.com CMMS Integration
+upkeep:
+  enabled: false
+  apiUrl: "https://api.upkeep.com"
+  apiKey: "${UPKEEP_API_KEY}"
+  syncInterval: 300
+  pullWorkOrders: true
+  pushEquipment: true
+
+# Industrial Communications
+industrial:
+  enabled: true
+
+  mqtt:
+    enabled: true
+    mode: "external"
+    brokerHost: "localhost"
+    brokerPort: 1883
+    username: ""
+    password: ""
+    clientId: "coromes-mqtt-client"
+    defaultQoS: 1
+    topics:
+      - "plant/+/+/status"
+      - "plant/+/+/telemetry"
+      - "plant/+/+/alerts"
+
+  opcua:
+    enabled: false
+    servers:
+      - name: "SCADA_Server"
+        url: "opc.tcp://scada.local:4840"
+        securityPolicy: "Basic256Sha256"
+        authMode: "Anonymous"
+
+  ethernetip:
+    enabled: false
+    devices:
+      - name: "AB_PLC_01"
+        host: "192.168.1.10"
+        port: 44818
+        slot: 0
+        tags:
+          - { name: "MachineStatus", address: "MainProgram:MachineStatus", type: "Int16" }
+          - { name: "PartCount", address: "MainProgram:PartCount", type: "Int32" }
+
+features:
+  enableSwagger: true
+  enableSeedData: true
+  enableOpenApi: true

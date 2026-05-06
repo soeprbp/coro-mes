@@ -1,0 +1,103 @@
+using Microsoft.EntityFrameworkCore;
+using CoroMES.Core.Entities;
+
+namespace CoroMES.Infrastructure.Data;
+
+public class ApplicationDbContext : DbContext
+{
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
+
+    // Production
+    public DbSet<WorkOrder> WorkOrders => Set<WorkOrder>();
+    public DbSet<WorkOrderOperation> WorkOrderOperations => Set<WorkOrderOperation>();
+
+    // Equipment
+    public DbSet<Equipment> Equipment => Set<Equipment>();
+    public DbSet<EquipmentMaintenance> EquipmentMaintenances => Set<EquipmentMaintenance>();
+
+    // Inventory
+    public DbSet<Material> Materials => Set<Material>();
+    public DbSet<BillOfMaterials> BillOfMaterials => Set<BillOfMaterials>();
+    public DbSet<MaterialMovement> MaterialMovements => Set<MaterialMovement>();
+
+    // Workforce
+    public DbSet<Operator> Operators => Set<Operator>();
+    public DbSet<Shift> Shifts => Set<Shift>();
+    public DbSet<LaborRecord> LaborRecords => Set<LaborRecord>();
+
+    // Quality
+    public DbSet<Inspection> Inspections => Set<Inspection>();
+    public DbSet<InspectionItem> InspectionItems => Set<InspectionItem>();
+    public DbSet<NonConformance> NonConformances => Set<NonConformance>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // WorkOrder
+        modelBuilder.Entity<WorkOrder>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Number).IsRequired().HasMaxLength(50);
+            entity.HasIndex(e => e.Number).IsUnique();
+        });
+
+        // Equipment
+        modelBuilder.Entity<Equipment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Code).IsRequired().HasMaxLength(50);
+            entity.HasIndex(e => e.Code).IsUnique();
+        });
+
+        // Material
+        modelBuilder.Entity<Material>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Code).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.UnitOfMeasure).HasMaxLength(20);
+            entity.HasIndex(e => e.Code).IsUnique();
+        });
+
+        // Operator
+        modelBuilder.Entity<Operator>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.EmployeeNumber).IsRequired().HasMaxLength(50);
+            entity.HasIndex(e => e.EmployeeNumber).IsUnique();
+        });
+
+        // Shift
+        modelBuilder.Entity<Shift>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Code).IsRequired().HasMaxLength(20);
+            entity.HasIndex(e => e.Code).IsUnique();
+        });
+
+        // Configure relationships
+        modelBuilder.Entity<WorkOrderOperation>()
+            .HasOne(w => w.WorkOrder)
+            .WithMany(w => w.Operations)
+            .HasForeignKey(w => w.WorkOrderId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<EquipmentMaintenance>()
+            .HasOne(e => e.Equipment)
+            .WithMany(e => e.Maintenances)
+            .HasForeignKey(e => e.EquipmentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<BillOfMaterials>()
+            .HasOne(b => b.Product)
+            .WithMany(m => m.BillOfMaterialsItems)
+            .HasForeignKey(b => b.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<LaborRecord>()
+            .HasOne(l => l.Operator)
+            .WithMany(o => o.LaborRecords)
+            .HasForeignKey(l => l.OperatorId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}

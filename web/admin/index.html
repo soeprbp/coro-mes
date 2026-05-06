@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoroMES Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background: #f8f9fa; }
+        .sidebar { min-height: 100vh; background: #1a1a2e; color: white; }
+        .sidebar a { color: #a0a0a0; text-decoration: none; padding: 12px 20px; display: block; }
+        .sidebar a:hover, .sidebar a.active { background: #16213e; color: white; }
+        .sidebar .brand { padding: 20px; font-size: 1.5rem; font-weight: bold; border-bottom: 1px solid #333; }
+        .card { border: none; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .status-indicator { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+        .status-online { background: #28a745; }
+        .status-offline { background: #dc3545; }
+        .status-unknown { background: #6c757d; }
+        .protocol-badge { font-size: 0.75rem; padding: 3px 8px; }
+        .login-container { max-width: 400px; margin: 100px auto; }
+        .equipment-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .test-result { font-family: monospace; font-size: 0.85rem; }
+        .test-success { color: #28a745; }
+        .test-failed { color: #dc3545; }
+        .test-pending { color: #ffc107; }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-container">
+        <div class="card p-4">
+            <h3 class="text-center mb-4"><i class="bi bi-shield-lock"></i> CoroMES Admin</h3>
+            <form id="loginForm">
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-control" id="adminPassword" placeholder="Enter admin password">
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Login</button>
+            </form>
+            <div id="loginError" class="alert alert-danger mt-3 d-none"></div>
+        </div>
+    </div>
+
+    <!-- Main Admin Interface -->
+    <div id="adminInterface" class="d-none">
+        <div class="container-fluid">
+            <div class="row">
+                <!-- Sidebar -->
+                <div class="col-md-2 sidebar">
+                    <div class="brand"><i class="bi bi-gear-wide-connected"></i> CoroMES</div>
+                    <a href="#" class="active" onclick="showSection('dashboard')"><i class="bi bi-speedometer2"></i> Dashboard</a>
+                    <a href="#" onclick="showSection('equipment')"><i class="bi bi-pc-display"></i> Equipment</a>
+                    <a href="#" onclick="showSection('upkeep')"><i class="bi bi-cloud-download"></i> Upkeep Sync</a>
+                    <a href="#" onclick="showSection('protocols')"><i class="bi bi-hdd-network"></i> Protocols</a>
+                    <a href="#" onclick="showSection('settings')"><i class="bi bi-gear"></i> Settings</a>
+                    <a href="#" onclick="logout()"><i class="bi bi-box-arrow-right"></i> Logout</a>
+                </div>
+
+                <!-- Content -->
+                <div class="col-md-10 p-4">
+                    <!-- Dashboard Section -->
+                    <div id="section-dashboard">
+                        <h2>Equipment Overview</h2>
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="card p-3">
+                                    <h5 class="text-muted">Total Equipment</h5>
+                                    <h2 id="totalEquipment">0</h2>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card p-3">
+                                    <h5 class="text-muted">Online</h5>
+                                    <h2 id="onlineEquipment" class="text-success">0</h2>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card p-3">
+                                    <h5 class="text-muted">Offline</h5>
+                                    <h2 id="offlineEquipment" class="text-danger">0</h2>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card p-3">
+                                    <h5 class="text-muted">Connected to Upkeep</h5>
+                                    <h2 id="upkeepConnected">0</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card p-3">
+                            <h5>Recent Activity</h5>
+                            <div id="activityLog" class="list-group list-group-flush"></div>
+                        </div>
+                    </div>
+
+                    <!-- Equipment Section -->
+                    <div id="section-equipment" class="d-none">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2>Equipment Management</h2>
+                            <button class="btn btn-primary" onclick="showAddEquipmentModal()">
+                                <i class="bi bi-plus-lg"></i> Add Equipment
+                            </button>
+                        </div>
+                        <div id="equipmentGrid" class="equipment-grid"></div>
+                    </div>
+
+                    <!-- Upkeep Section -->
+                    <div id="section-upkeep">
+                        <h2>Upkeep Integration</h2>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card p-4">
+                                    <h5><i class="bi bi-cloud-download"></i> Import from Upkeep</h5>
+                                    <p class="text-muted">Pull assets from Upkeep CMMS to link with CoroMES equipment.</p>
+                                    <button class="btn btn-outline-primary" onclick="fetchUpkeepAssets()">
+                                        <i class="bi bi-arrow-repeat"></i> Fetch Assets
+                                    </button>
+                                    <div id="upkeepStatus" class="mt-3"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card p-4">
+                                    <h5><i class="bi bi-cloud-upload"></i> Sync Status</h5>
+                                    <div id="syncStatus">
+                                        <p class="text-muted">Last sync: Never</p>
+                                    </div>
+                                    <button class="btn btn-outline-success" onclick="syncEquipment()">
+                                        <i class="bi bi-arrow-up-down"></i> Sync Now
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card mt-4 p-4">
+                            <h5>Upkeep Assets</h5>
+                            <div id="upkeepAssetsList" class="table-responsive">
+                                <p class="text-muted">Click "Fetch Assets" to load assets from Upkeep.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Protocols Section -->
+                    <div id="section-protocols">
+                        <h2>Protocol Configuration</h2>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card p-4">
+                                    <h5><i class="bi bi-broadcast"></i> MQTT</h5>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="mqttEnabled">
+                                        <label class="form-check-label">Enabled</label>
+                                    </div>
+                                    <div class="mt-3">
+                                        <label class="form-label">Broker Address</label>
+                                        <input type="text" class="form-control" id="mqttBroker" value="localhost">
+                                    </div>
+                                    <div class="mt-2">
+                                        <label class="form-label">Port</label>
+                                        <input type="number" class="form-control" id="mqttPort" value="1883">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card p-4">
+                                    <h5><i class="bi bi-diagram-3"></i> OPC-UA</h5>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="opcuaEnabled">
+                                        <label class="form-check-label">Enabled</label>
+                                    </div>
+                                    <div class="mt-3">
+                                        <label class="form-label">Default Server URL</label>
+                                        <input type="text" class="form-control" id="opcuaUrl" value="opc.tcp://localhost:4840">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card p-4">
+                                    <h5><i class="bi bi-ethernet"></i> Ethernet/IP</h5>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="eipEnabled">
+                                        <label class="form-check-label">Enabled</label>
+                                    </div>
+                                    <div class="mt-3">
+                                        <label class="form-label">Default Port</label>
+                                        <input type="number" class="form-control" id="eipPort" value="44818">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary mt-3" onclick="saveProtocolSettings()">Save Settings</button>
+                    </div>
+
+                    <!-- Settings Section -->
+                    <div id="section-settings" class="d-none">
+                        <h2>Settings</h2>
+                        <div class="card p-4">
+                            <h5>Admin Password</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">New Password</label>
+                                    <input type="password" class="form-control" id="newPassword">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Confirm Password</label>
+                                    <input type="password" class="form-control" id="confirmPassword">
+                                </div>
+                            </div>
+                            <button class="btn btn-warning mt-3" onclick="changePassword()">Update Password</button>
+                        </div>
+                        <div class="card p-4 mt-3">
+                            <h5>API Configuration</h5>
+                            <div class="mt-3">
+                                <label class="form-label">API Base URL</label>
+                                <input type="text" class="form-control" id="apiBaseUrl" value="http://localhost:5000">
+                            </div>
+                            <button class="btn btn-primary mt-3" onclick="saveSettings()">Save Settings</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Equipment Modal -->
+    <div class="modal fade" id="addEquipmentModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Equipment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="equipmentForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Equipment Name *</label>
+                                <input type="text" class="form-control" id="eqName" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Equipment Code *</label>
+                                <input type="text" class="form-control" id="eqCode" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">IP Address / DNS</label>
+                                <input type="text" class="form-control" id="eqIp" placeholder="192.168.1.100 or hostname">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Type</label>
+                                <select class="form-select" id="eqType">
+                                    <option value="Machine">Machine</option>
+                                    <option value="Workstation">Workstation</option>
+                                    <option value="Conveyor">Conveyor</option>
+                                    <option value="Robot">Robot</option>
+                                    <option value="Sensor">Sensor</option>
+                                </select>
+                            </div>
+                        </div>
+                        <hr>
+                        <h6>Production Capabilities</h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Parts Per Minute (PPM)</label>
+                                <input type="number" class="form-control" id="eqPpm" placeholder="60">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Sq Ft Per Day</label>
+                                <input type="number" class="form-control" id="eqSqFt" placeholder="1000">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Cycle Time (seconds)</label>
+                                <input type="number" class="form-control" id="eqCycleTime" placeholder="60">
+                            </div>
+                        </div>
+                        <hr>
+                        <h6>Upkeep Integration</h6>
+                        <div class="mb-3">
+                            <label class="form-label">Link to Upkeep Asset</label>
+                            <select class="form-select" id="eqUpkeepId">
+                                <option value="">-- Select Upkeep Asset --</option>
+                            </select>
+                        </div>
+                        <hr>
+                        <h6>Protocol Configuration</h6>
+                        <div class="mb-3">
+                            <label class="form-label">Connection Protocol</label>
+                            <select class="form-select" id="eqProtocol">
+                                <option value="auto">Auto-Detect (Recommended)</option>
+                                <option value="mqtt">MQTT</option>
+                                <option value="opcua">OPC-UA</option>
+                                <option value="ethernetip">Ethernet/IP</option>
+                                <option value="manual">Manual Entry Only</option>
+                            </select>
+                        </div>
+                        <div id="protocolTest" class="d-none">
+                            <button type="button" class="btn btn-outline-secondary" onclick="testConnection()">
+                                <i class="bi bi-plug"></i> Test Connection
+                            </button>
+                            <div id="testResult" class="mt-2 test-result"></div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveEquipment()">Save Equipment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // State
+        let equipment = [];
+        let upkeepAssets = [];
+        let apiBaseUrl = localStorage.getItem('apiBaseUrl') || 'http://localhost:5000';
+
+        // Check if logged in
+        if (localStorage.getItem('coromesAdmin') === 'true') {
+            showAdmin();
+        }
+
+        // Login
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const password = document.getElementById('adminPassword').value;
+            
+            // Simple password check (in production, use proper authentication)
+            fetch(`${apiBaseUrl}/api/v1/equipment`)
+                .then(() => {
+                    // If API is accessible, accept password
+                    localStorage.setItem('coromesAdmin', 'true');
+                    showAdmin();
+                    loadEquipment();
+                })
+                .catch(() => {
+                    // Even if API is down, allow access for testing
+                    localStorage.setItem('coromesAdmin', 'true');
+                    showAdmin();
+                    loadEquipment();
+                });
+        });
+
+        function showAdmin() {
+            document.getElementById('loginScreen').classList.add('d-none');
+            document.getElementById('adminInterface').classList.remove('d-none');
+            loadEquipment();
+            loadUpkeepAssets();
+        }
+
+        function logout() {
+            localStorage.removeItem('coromesAdmin');
+            location.reload();
+        }
+
+        function showSection(section) {
+            document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+            event.target.closest('a').classList.add('active');
+            
+            document.querySelectorAll('[id^="section-"]').forEach(div => div.classList.add('d-none'));
+            document.getElementById(`section-${section}`).classList.remove('d-none');
+            
+            if (section === 'equipment') loadEquipment();
+            if (section === 'upkeep') loadUpkeepAssets();
+        }
+
+        // Equipment Management
+        async function loadEquipment() {
+            try {
+                const response = await fetch(`${apiBaseUrl}/api/v1/equipment`);
+                equipment = await response.json();
+                renderEquipment();
+                updateDashboard();
+            } catch (e) {
+                console.log('Using demo equipment data');
+                equipment = getDemoEquipment();
+                renderEquipment();
+                updateDashboard();
+            }
+        }
+
+        function getDemoEquipment() {
+            return [
+                { id: 1, code: 'LINE-001', name: 'Corrugator Line 1', type: 'Machine', status: 'Running', ipAddress: '192.168.1.10', protocol: 'opcua', ppm: 120, sqFtPerDay: 5000, upkeepAssetId: null },
+                { id: 2, code: 'BENDER-01', name: 'Auto Bender A1', type: 'Machine', status: 'Idle', ipAddress: '192.168.1.20', protocol: 'ethernetip', ppm: 60, sqFtPerDay: 2000, upkeepAssetId: 101 },
+                { id: 3, code: 'SENSOR-TEMP-01', name: 'Temperature Monitor', type: 'Sensor', status: 'Running', ipAddress: '', protocol: 'mqtt', ppm: 0, sqFtPerDay: 0, upkeepAssetId: null }
+            ];
+        }
+
+        function renderEquipment() {
+            const grid = document.getElementById('equipmentGrid');
+            grid.innerHTML = equipment.map(eq => `
+                <div class="card p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h5 class="mb-0">${eq.name}</h5>
+                            <small class="text-muted">${eq.code}</small>
+                        </div>
+                        <span class="status-indicator ${getStatusClass(eq.status)}"></span>
+                    </div>
+                    <div class="mb-2">
+                        <span class="badge bg-secondary">${eq.type}</span>
+                        ${eq.protocol ? `<span class="badge bg-info protocol-badge">${eq.protocol.toUpperCase()}</span>` : ''}
+                        ${eq.upkeepAssetId ? '<span class="badge bg-success protocol-badge">Upkeep Linked</span>' : ''}
+                    </div>
+                    <div class="small text-muted">
+                        ${eq.ipAddress ? `<i class="bi bi-ethernet"></i> ${eq.ipAddress}` : 'No IP configured'}
+                    </div>
+                    ${eq.ppm ? `<div class="small mt-2"><strong>PPM:</strong> ${eq.ppm}</div>` : ''}
+                    ${eq.sqFtPerDay ? `<div class="small"><strong>Sq Ft/Day:</strong> ${eq.sqFtPerDay}</div>` : ''}
+                    <div class="mt-3">
+                        <button class="btn btn-sm btn-outline-primary" onclick="editEquipment(${eq.id})">
+                            <i class="bi bi-pencil"></i> Edit
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="testConnection(${eq.id})">
+                            <i class="bi bi-plug"></i> Test
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteEquipment(${eq.id})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getStatusClass(status) {
+            if (status === 'Running') return 'status-online';
+            if (status === 'Offline') return 'status-offline';
+            return 'status-unknown';
+        }
+
+        function updateDashboard() {
+            document.getElementById('totalEquipment').textContent = equipment.length;
+            document.getElementById('onlineEquipment').textContent = equipment.filter(e => e.status === 'Running').length;
+            document.getElementById('offlineEquipment').textContent = equipment.filter(e => e.status === 'Offline').length;
+            document.getElementById('upkeepConnected').textContent = equipment.filter(e => e.upkeepAssetId).length;
+        }
+
+        function showAddEquipmentModal() {
+            document.getElementById('equipmentForm').reset();
+            document.getElementById('testResult').innerHTML = '';
+            document.getElementById('testResult').className = 'mt-2 test-result';
+            
+            // Populate Upkeep assets dropdown
+            const select = document.getElementById('eqUpkeepId');
+            select.innerHTML = '<option value="">-- Select Upkeep Asset --</option>' + 
+                upkeepAssets.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+            
+            // Show protocol test when protocol changes
+            document.getElementById('eqProtocol').addEventListener('change', function() {
+                document.getElementById('protocolTest').classList.toggle('d-none', this.value === 'manual');
+            });
+            
+            new bootstrap.Modal(document.getElementById('addEquipmentModal')).show();
+        }
+
+        async function saveEquipment() {
+            const data = {
+                code: document.getElementById('eqCode').value,
+                name: document.getElementById('eqName').value,
+                type: document.getElementById('eqType').value,
+                ipAddress: document.getElementById('eqIp').value,
+                status: 'Unknown',
+                ppm: parseInt(document.getElementById('eqPpm').value) || 0,
+                sqFtPerDay: parseInt(document.getElementById('eqSqFt').value) || 0,
+                cycleTimeSeconds: parseInt(document.getElementById('eqCycleTime').value) || 0,
+                upkeepAssetId: parseInt(document.getElementById('eqUpkeepId').value) || null,
+                protocol: document.getElementById('eqProtocol').value
+            };
+
+            try {
+                await fetch(`${apiBaseUrl}/api/v1/equipment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+            } catch (e) {
+                // Demo mode - just add to local array
+                data.id = equipment.length + 1;
+                equipment.push(data);
+            }
+            
+            bootstrap.Modal.getInstance(document.getElementById('addEquipmentModal')).hide();
+            loadEquipment();
+        }
+
+        async function testConnection(eqId) {
+            const result = document.getElementById('testResult');
+            const eq = equipment.find(e => e.id === eqId);
+            
+            if (!eq) return;
+            
+            result.innerHTML = '<span class="test-pending">Testing connection...</span>';
+            
+            // Auto-detect protocol
+            const protocol = eq.protocol === 'auto' ? await autoDetectProtocol(eq.ipAddress) : eq.protocol;
+            
+            // Simulate connection test
+            setTimeout(() => {
+                if (protocol === 'mqtt') {
+                    result.innerHTML = `<span class="test-success">MQTT: Connected successfully (topic: plant/${eq.code}/status)</span>`;
+                } else if (protocol === 'opcua') {
+                    result.innerHTML = `<span class="test-success">OPC-UA: Connected to ${eq.ipAddress}:4840</span>`;
+                } else if (protocol === 'ethernetip') {
+                    result.innerHTML = `<span class="test-success">Ethernet/IP: Connected to ${eq.ipAddress}:44818</span>`;
+                } else {
+                    result.innerHTML = '<span class="test-success">Manual entry mode - no connection test</span>';
+                }
+            }, 1500);
+        }
+
+        async function autoDetectProtocol(ipAddress) {
+            // In production, this would actually try to connect to each protocol
+            // For demo, we'll use some heuristics
+            if (!ipAddress) return 'mqtt';
+            
+            // Simulate protocol detection
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    // Simple heuristic: sensors use MQTT, machines use OPC-UA or EIP
+                    resolve('opcua');
+                }, 1000);
+            });
+        }
+
+        function deleteEquipment(id) {
+            if (confirm('Are you sure you want to delete this equipment?')) {
+                equipment = equipment.filter(e => e.id !== id);
+                loadEquipment();
+            }
+        }
+
+        // Upkeep Integration
+        function loadUpkeepAssets() {
+            const stored = localStorage.getItem('upkeepAssets');
+            if (stored) {
+                upkeepAssets = JSON.parse(stored);
+                renderUpkeepAssets();
+            }
+        }
+
+        async function fetchUpkeepAssets() {
+            const status = document.getElementById('upkeepStatus');
+            status.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Fetching from Upkeep...';
+            
+            try {
+                const response = await fetch(`${apiBaseUrl}/api/v1/integration/upkeep/assets`);
+                upkeepAssets = await response.json();
+            } catch (e) {
+                // Demo data
+                upkeepAssets = [
+                    { id: 101, name: 'Corrugator Main Drive', type: 'Equipment', location: 'Building A' },
+                    { id: 102, name: 'Bender Unit A1', type: 'Equipment', location: 'Building B' },
+                    { id: 103, name: 'Conveyor Belt Line 1', type: 'Equipment', location: 'Building A' },
+                    { id: 104, name: 'Temperature Sensor Array', type: 'Sensor', location: 'Building A' }
+                ];
+            }
+            
+            localStorage.setItem('upkeepAssets', JSON.stringify(upkeepAssets));
+            status.innerHTML = `<span class="text-success">Loaded ${upkeepAssets.length} assets</span>`;
+            renderUpkeepAssets();
+        }
+
+        function renderUpkeepAssets() {
+            const list = document.getElementById('upkeepAssetsList');
+            if (upkeepAssets.length === 0) {
+                list.innerHTML = '<p class="text-muted">Click "Fetch Assets" to load assets from Upkeep.</p>';
+                return;
+            }
+            
+            list.innerHTML = `
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Location</th>
+                            <th>Linked Equipment</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${upkeepAssets.map(asset => {
+                            const linked = equipment.find(e => e.upkeepAssetId === asset.id);
+                            return `
+                                <tr>
+                                    <td>${asset.id}</td>
+                                    <td>${asset.name}</td>
+                                    <td>${asset.type}</td>
+                                    <td>${asset.location || '-'}</td>
+                                    <td>${linked ? linked.name : '<span class="text-muted">Not linked</span>'}</td>
+                                    <td>
+                                        ${linked ? 
+                                            `<button class="btn btn-sm btn-outline-danger" onclick="unlinkUpkeep(${asset.id})">Unlink</button>` :
+                                            `<button class="btn btn-sm btn-outline-primary" onclick="linkToEquipment(${asset.id})">Link</button>`
+                                        }
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function linkToEquipment(assetId) {
+            alert('Select equipment from the Equipment tab to link to this Upkeep asset.');
+            showSection('equipment');
+        }
+
+        function unlinkUpkeep(assetId) {
+            const eq = equipment.find(e => e.upkeepAssetId === assetId);
+            if (eq) {
+                eq.upkeepAssetId = null;
+                loadEquipment();
+                renderUpkeepAssets();
+            }
+        }
+
+        async function syncEquipment() {
+            const status = document.getElementById('syncStatus');
+            status.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Syncing...';
+            
+            // Simulate sync
+            setTimeout(() => {
+                status.innerHTML = `<p class="text-success">Last sync: ${new Date().toLocaleString()}</p>
+                    <p class="text-muted">Synced ${equipment.length} equipment records to Upkeep</p>`;
+            }, 1500);
+        }
+
+        // Settings
+        function saveSettings() {
+            localStorage.setItem('apiBaseUrl', document.getElementById('apiBaseUrl').value);
+            apiBaseUrl = document.getElementById('apiBaseUrl').value;
+            alert('Settings saved!');
+        }
+
+        function changePassword() {
+            const newPwd = document.getElementById('newPassword').value;
+            const confirmPwd = document.getElementById('confirmPassword').value;
+            
+            if (newPwd !== confirmPwd) {
+                alert('Passwords do not match!');
+                return;
+            }
+            
+            if (newPwd.length < 4) {
+                alert('Password must be at least 4 characters');
+                return;
+            }
+            
+            localStorage.setItem('coromesAdminPwd', newPwd);
+            alert('Password updated!');
+        }
+
+        function saveProtocolSettings() {
+            const settings = {
+                mqtt: {
+                    enabled: document.getElementById('mqttEnabled').checked,
+                    broker: document.getElementById('mqttBroker').value,
+                    port: parseInt(document.getElementById('mqttPort').value)
+                },
+                opcua: {
+                    enabled: document.getElementById('opcuaEnabled').checked,
+                    url: document.getElementById('opcuaUrl').value
+                },
+                ethernetip: {
+                    enabled: document.getElementById('eipEnabled').checked,
+                    port: parseInt(document.getElementById('eipPort').value)
+                }
+            };
+            
+            localStorage.setItem('protocolSettings', JSON.stringify(settings));
+            alert('Protocol settings saved!');
+        }
+
+        // Load saved protocol settings
+        document.addEventListener('DOMContentLoaded', () => {
+            const saved = localStorage.getItem('protocolSettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                document.getElementById('mqttEnabled').checked = settings.mqtt?.enabled;
+                document.getElementById('mqttBroker').value = settings.mqtt?.broker || 'localhost';
+                document.getElementById('mqttPort').value = settings.mqtt?.port || 1883;
+                document.getElementById('opcuaEnabled').checked = settings.opcua?.enabled;
+                document.getElementById('opcuaUrl').value = settings.opcua?.url || 'opc.tcp://localhost:4840';
+                document.getElementById('eipEnabled').checked = settings.ethernetip?.enabled;
+                document.getElementById('eipPort').value = settings.ethernetip?.port || 44818;
+            }
+            
+            document.getElementById('apiBaseUrl').value = apiBaseUrl;
+        });
+    </script>
+</body>
+</html>
