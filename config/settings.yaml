@@ -80,6 +80,15 @@ industrial:
           - { name: "MachineStatus", address: "MainProgram:MachineStatus", type: "Int16" }
           - { name: "PartCount", address: "MainProgram:PartCount", type: "Int32" }
 
+# i3X Integration (Primary Data Fabric)
+i3x:
+  enabled: false
+  baseUrl: "http://localhost:8080/v1"
+  apiKey: "${I3X_API_KEY}"
+  namespaceUri: "https://coromes.com/ns/mes"
+  autoRegisterTypes: true
+  timeoutSeconds: 30
+
 features:
   enableSwagger: true
   enableSeedData: true

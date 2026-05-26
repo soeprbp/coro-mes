@@ -49,6 +49,9 @@ services:
       - ASPNETCORE_URLS=http://+:5000
       - DatabaseProvider=postgres
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=coromes;Username=postgres;Password=changeme
+      - i3x__enabled=${I3X_ENABLED:-false}
+      - i3x__baseUrl=${I3X_BASE_URL:-http://host.docker.internal:8080/v1}
+      - i3x__apiKey=${I3X_API_KEY:-}
     ports:
       - "5000:5000"
       - "5001:5001"

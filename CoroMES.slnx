@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/industrial/">
     <Project Path="industrial/CoroMES.Industrial.EthernetIp/CoroMES.Industrial.EthernetIp.csproj" />
+    <Project Path="industrial/CoroMES.Industrial.i3X/CoroMES.Industrial.i3X.csproj" />
     <Project Path="industrial/CoroMES.Industrial.Mqtt/CoroMES.Industrial.Mqtt.csproj" />
     <Project Path="industrial/CoroMES.Industrial.OpcUa/CoroMES.Industrial.OpcUa.csproj" />
   </Folder>

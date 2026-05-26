@@ -41,6 +41,7 @@ public class MaterialMovement : Entity
     public int? WorkOrderId { get; set; }
     public string? ReferenceNumber { get; set; }
     public string? PerformedBy { get; set; }
+    public DateTime MovementDate { get; set; } = DateTime.UtcNow;
 
     public Material? Material { get; set; }
     public WorkOrder? WorkOrder { get; set; }

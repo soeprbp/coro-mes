@@ -1,6 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using CoroMES.Infrastructure.Data;
 using CoroMES.Core.Entities;
+using CoroMES.Core.Interfaces.Repositories;
+using CoroMES.Infrastructure.Repositories;
+using CoroMES.Infrastructure.Repositories.i3x;
+using CoroMES.Industrial.i3X;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,18 +12,75 @@ var builder = WebApplication.CreateBuilder(args);
 var dbProvider = builder.Configuration.GetValue<string>("DatabaseProvider") ?? "sqlite";
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-if (dbProvider == "postgres")
+if (string.Equals(dbProvider, "postgres", StringComparison.OrdinalIgnoreCase))
 {
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseNpgsql(connectionString));
 }
 else
 {
-    // Use SQLite for development - use absolute path
-    var dbPath = @"C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\CoroMES\database\coromes.db";
-    Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+    var sqliteConnectionString = string.IsNullOrWhiteSpace(connectionString)
+        ? "Data Source=database/coromes.db"
+        : connectionString;
+
+    var dbPath = sqliteConnectionString
+        .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .FirstOrDefault(part => part.StartsWith("Data Source=", StringComparison.OrdinalIgnoreCase))
+        ?.Split('=', 2)[1];
+
+    if (!string.IsNullOrWhiteSpace(dbPath))
+    {
+        var resolvedDbPath = Path.IsPathRooted(dbPath)
+            ? dbPath
+            : Path.Combine(builder.Environment.ContentRootPath, dbPath);
+
+        Directory.CreateDirectory(Path.GetDirectoryName(resolvedDbPath)!);
+        sqliteConnectionString = $"Data Source={resolvedDbPath}";
+    }
+
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        options.UseSqlite($"Data Source={dbPath}"));
+        options.UseSqlite(sqliteConnectionString));
+}
+
+// Determine if i3X is enabled
+var useI3X = builder.Configuration.GetValue<bool?>("i3x:enabled") ?? false;
+
+if (useI3X)
+{
+    // Register i3X services
+    builder.Services.AddI3X(builder.Configuration);
+
+    // Register i3X-backed repositories for all repository interfaces.
+    builder.Services.AddScoped<IWorkOrderRepository, I3XWorkOrderRepository>();
+    builder.Services.AddScoped<IWorkOrderOperationRepository, I3XWorkOrderOperationRepository>();
+    builder.Services.AddScoped<IEquipmentRepository, I3XEquipmentRepository>();
+    builder.Services.AddScoped<IEquipmentMaintenanceRepository, I3XEquipmentMaintenanceRepository>();
+    builder.Services.AddScoped<IMaterialRepository, I3XMaterialRepository>();
+    builder.Services.AddScoped<IBillOfMaterialsRepository, I3XBillOfMaterialsRepository>();
+    builder.Services.AddScoped<IMaterialMovementRepository, I3XMaterialMovementRepository>();
+    builder.Services.AddScoped<IOperatorRepository, I3XOperatorRepository>();
+    builder.Services.AddScoped<IShiftRepository, I3XShiftRepository>();
+    builder.Services.AddScoped<ILaborRecordRepository, I3XLaborRecordRepository>();
+    builder.Services.AddScoped<IInspectionRepository, I3XInspectionRepository>();
+    builder.Services.AddScoped<IInspectionItemRepository, I3XInspectionItemRepository>();
+    builder.Services.AddScoped<INonConformanceRepository, I3XNonConformanceRepository>();
+}
+else
+{
+    // Register EF Core repositories (existing)
+    builder.Services.AddScoped<IWorkOrderRepository, WorkOrderRepository>();
+    builder.Services.AddScoped<IWorkOrderOperationRepository, WorkOrderOperationRepository>();
+    builder.Services.AddScoped<IEquipmentRepository, EquipmentRepository>();
+    builder.Services.AddScoped<IEquipmentMaintenanceRepository, EquipmentMaintenanceRepository>();
+    builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
+    builder.Services.AddScoped<IBillOfMaterialsRepository, BillOfMaterialsRepository>();
+    builder.Services.AddScoped<IMaterialMovementRepository, MaterialMovementRepository>();
+    builder.Services.AddScoped<IOperatorRepository, OperatorRepository>();
+    builder.Services.AddScoped<IShiftRepository, ShiftRepository>();
+    builder.Services.AddScoped<ILaborRecordRepository, LaborRecordRepository>();
+    builder.Services.AddScoped<IInspectionRepository, InspectionRepository>();
+    builder.Services.AddScoped<IInspectionItemRepository, InspectionItemRepository>();
+    builder.Services.AddScoped<INonConformanceRepository, NonConformanceRepository>();
 }
 
 // Set web root to project root for static files (with fallback)
@@ -32,11 +93,19 @@ builder.Environment.WebRootPath = webRoot;
 
 var app = builder.Build();
 
-// Ensure database is created
+// Apply migrations for PostgreSQL. SQLite is the local Windows test store and
+// uses EnsureCreated because the checked-in migrations target PostgreSQL.
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await db.Database.EnsureCreatedAsync();
+    if (string.Equals(dbProvider, "postgres", StringComparison.OrdinalIgnoreCase))
+    {
+        await db.Database.MigrateAsync();
+    }
+    else
+    {
+        await db.Database.EnsureCreatedAsync();
+    }
 }
 
 // Enable static files
@@ -47,63 +116,61 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = Dat
     .WithName("Health Check");
 
 // Work Orders endpoints
-app.MapGet("/api/v1/workorders", async (ApplicationDbContext db) =>
+app.MapGet("/api/v1/workorders", async (IWorkOrderRepository workOrderRepo) =>
 {
-    var workOrders = await db.WorkOrders.Take(100).ToListAsync();
-    return Results.Ok(workOrders);
+    var workOrders = await workOrderRepo.GetAllAsync();
+    return Results.Ok(workOrders.Take(100));
 })
 .WithName("GetWorkOrders")
 .WithTags("WorkOrders");
 
-app.MapGet("/api/v1/workorders/{id}", async (int id, ApplicationDbContext db) =>
+app.MapGet("/api/v1/workorders/{id}", async (int id, IWorkOrderRepository workOrderRepo) =>
 {
-    var workOrder = await db.WorkOrders.FindAsync(id);
+    var workOrder = await workOrderRepo.GetByIdAsync(id);
     return workOrder is null ? Results.NotFound() : Results.Ok(workOrder);
 })
 .WithName("GetWorkOrder")
 .WithTags("WorkOrders");
 
-app.MapPost("/api/v1/workorders", async (WorkOrder workOrder, ApplicationDbContext db) =>
+app.MapPost("/api/v1/workorders", async (WorkOrder workOrder, IWorkOrderRepository workOrderRepo) =>
 {
     workOrder.CreatedAt = DateTime.UtcNow;
     workOrder.Number = $"WO-{DateTime.UtcNow:yyyyMMddHHmmss}";
-    db.WorkOrders.Add(workOrder);
-    await db.SaveChangesAsync();
+    await workOrderRepo.AddAsync(workOrder);
     return Results.Created($"/api/v1/workorders/{workOrder.Id}", workOrder);
 })
 .WithName("CreateWorkOrder")
 .WithTags("WorkOrders");
 
 // Equipment endpoints
-app.MapGet("/api/v1/equipment", async (ApplicationDbContext db) =>
+app.MapGet("/api/v1/equipment", async (IEquipmentRepository equipmentRepo) =>
 {
-    var equipment = await db.Equipment.Take(100).ToListAsync();
-    return Results.Ok(equipment);
+    var equipment = await equipmentRepo.GetAllAsync();
+    return Results.Ok(equipment.Take(100));
 })
 .WithName("GetEquipment")
 .WithTags("Equipment");
 
-app.MapGet("/api/v1/equipment/{id}", async (int id, ApplicationDbContext db) =>
+app.MapGet("/api/v1/equipment/{id}", async (int id, IEquipmentRepository equipmentRepo) =>
 {
-    var equipment = await db.Equipment.FindAsync(id);
+    var equipment = await equipmentRepo.GetByIdAsync(id);
     return equipment is null ? Results.NotFound() : Results.Ok(equipment);
 })
 .WithName("GetEquipmentById")
 .WithTags("Equipment");
 
-app.MapPost("/api/v1/equipment", async (Equipment equipment, ApplicationDbContext db) =>
+app.MapPost("/api/v1/equipment", async (Equipment equipment, IEquipmentRepository equipmentRepo) =>
 {
     equipment.CreatedAt = DateTime.UtcNow;
-    db.Equipment.Add(equipment);
-    await db.SaveChangesAsync();
+    await equipmentRepo.AddAsync(equipment);
     return Results.Created($"/api/v1/equipment/{equipment.Id}", equipment);
 })
 .WithName("CreateEquipment")
 .WithTags("Equipment");
 
-app.MapPut("/api/v1/equipment/{id}", async (int id, Equipment equipment, ApplicationDbContext db) =>
+app.MapPut("/api/v1/equipment/{id}", async (int id, Equipment equipment, IEquipmentRepository equipmentRepo) =>
 {
-    var existing = await db.Equipment.FindAsync(id);
+    var existing = await equipmentRepo.GetByIdAsync(id);
     if (existing is null) return Results.NotFound();
     
     existing.Name = equipment.Name;
@@ -118,19 +185,18 @@ app.MapPut("/api/v1/equipment/{id}", async (int id, Equipment equipment, Applica
     existing.Status = equipment.Status;
     existing.UpdatedAt = DateTime.UtcNow;
     
-    await db.SaveChangesAsync();
+    await equipmentRepo.UpdateAsync(existing);
     return Results.Ok(existing);
 })
 .WithName("UpdateEquipment")
 .WithTags("Equipment");
 
-app.MapDelete("/api/v1/equipment/{id}", async (int id, ApplicationDbContext db) =>
+app.MapDelete("/api/v1/equipment/{id}", async (int id, IEquipmentRepository equipmentRepo) =>
 {
-    var equipment = await db.Equipment.FindAsync(id);
+    var equipment = await equipmentRepo.GetByIdAsync(id);
     if (equipment is null) return Results.NotFound();
     
-    db.Equipment.Remove(equipment);
-    await db.SaveChangesAsync();
+    await equipmentRepo.DeleteAsync(id);
     return Results.NoContent();
 })
 .WithName("DeleteEquipment")
@@ -178,72 +244,70 @@ app.MapPost("/api/v1/integration/upkeep/downtime", async (ApplicationDbContext d
 .WithTags("Upkeep");
 
 // Materials endpoints
-app.MapGet("/api/v1/materials", async (ApplicationDbContext db) =>
+app.MapGet("/api/v1/materials", async (IMaterialRepository materialRepo) =>
 {
-    var materials = await db.Materials.Take(100).ToListAsync();
-    return Results.Ok(materials);
+    var materials = await materialRepo.GetAllAsync();
+    return Results.Ok(materials.Take(100));
 })
 .WithName("GetMaterials")
 .WithTags("Materials");
 
-app.MapGet("/api/v1/materials/{id}", async (int id, ApplicationDbContext db) =>
+app.MapGet("/api/v1/materials/{id}", async (int id, IMaterialRepository materialRepo) =>
 {
-    var material = await db.Materials.FindAsync(id);
+    var material = await materialRepo.GetByIdAsync(id);
     return material is null ? Results.NotFound() : Results.Ok(material);
 })
 .WithName("GetMaterial")
 .WithTags("Materials");
 
-app.MapPost("/api/v1/materials", async (Material material, ApplicationDbContext db) =>
+app.MapPost("/api/v1/materials", async (Material material, IMaterialRepository materialRepo) =>
 {
     material.CreatedAt = DateTime.UtcNow;
-    db.Materials.Add(material);
-    await db.SaveChangesAsync();
+    await materialRepo.AddAsync(material);
     return Results.Created($"/api/v1/materials/{material.Id}", material);
 })
 .WithName("CreateMaterial")
 .WithTags("Materials");
 
 // Operators endpoints
-app.MapGet("/api/v1/operators", async (ApplicationDbContext db) =>
+app.MapGet("/api/v1/operators", async (IOperatorRepository operatorRepo) =>
 {
-    var operators = await db.Operators.Take(100).ToListAsync();
-    return Results.Ok(operators);
+    var operators = await operatorRepo.GetAllAsync();
+    return Results.Ok(operators.Take(100));
 })
 .WithName("GetOperators")
 .WithTags("Operators");
 
-app.MapGet("/api/v1/operators/{id}", async (int id, ApplicationDbContext db) =>
+app.MapGet("/api/v1/operators/{id}", async (int id, IOperatorRepository operatorRepo) =>
 {
-    var op = await db.Operators.FindAsync(id);
+    var op = await operatorRepo.GetByIdAsync(id);
     return op is null ? Results.NotFound() : Results.Ok(op);
 })
 .WithName("GetOperator")
 .WithTags("Operators");
 
-app.MapPost("/api/v1/operators", async (Operator op, ApplicationDbContext db) =>
+app.MapPost("/api/v1/operators", async (Operator op, IOperatorRepository operatorRepo) =>
 {
     op.CreatedAt = DateTime.UtcNow;
-    db.Operators.Add(op);
-    await db.SaveChangesAsync();
+    await operatorRepo.AddAsync(op);
     return Results.Created($"/api/v1/operators/{op.Id}", op);
 })
 .WithName("CreateOperator")
 .WithTags("Operators");
 
 // Quality endpoints
-app.MapGet("/api/v1/quality/inspections", async (ApplicationDbContext db) =>
+app.MapGet("/api/v1/quality/inspections", async (IInspectionRepository inspectionRepo) =>
 {
-    var inspections = await db.Inspections.Take(100).ToListAsync();
-    return Results.Ok(inspections);
+    var inspections = await inspectionRepo.GetAllAsync();
+    return Results.Ok(inspections.Take(100));
 })
 .WithName("GetInspections")
 .WithTags("Quality");
 
-app.MapGet("/api/v1/quality/ncr", async (ApplicationDbContext db) =>
+app.MapGet("/api/v1/quality/ncr", async (INonConformanceRepository ncrRepo) =>
 {
-    var ncrs = await db.NonConformances.Take(100).ToListAsync();
-    return Results.Ok(ncrs);
+    var ncrs = await ncrRepo.GetAllAsync();
+    return Results.Ok(ncrs.Take(100));
 })
 .WithName("GetNonConformances")
 .WithTags("Quality");

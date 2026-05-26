@@ -20,6 +20,7 @@ COPY ["integration/CoroMES.Integration.IIoT/CoroMES.Integration.IIoT.csproj", "i
 COPY ["industrial/CoroMES.Industrial.Mqtt/CoroMES.Industrial.Mqtt.csproj", "industrial/CoroMES.Industrial.Mqtt/"]
 COPY ["industrial/CoroMES.Industrial.OpcUa/CoroMES.Industrial.OpcUa.csproj", "industrial/CoroMES.Industrial.OpcUa/"]
 COPY ["industrial/CoroMES.Industrial.EthernetIp/CoroMES.Industrial.EthernetIp.csproj", "industrial/CoroMES.Industrial.EthernetIp/"]
+COPY ["industrial/CoroMES.Industrial.i3X/CoroMES.Industrial.i3X.csproj", "industrial/CoroMES.Industrial.i3X/"]
 
 # Restore packages
 RUN dotnet restore "CoroMES.sln"
@@ -45,6 +46,7 @@ ENV TZ=America/Indiana/Indianapolis
 
 # Copy published files
 COPY --from=build /app/publish .
+COPY --from=build /src/web ./web
 
 # Run as root for now
 USER root
