@@ -43,3 +43,8 @@ dotnet test
 - Solution created with 19 projects
 - No implementation yet (just structure)
 - Next: Add references and packages
+
+## Long-Term Direction
+- Replace legacy CTI/EPS MES and SCADA functions with CoroMES first.
+- The current MES/SCADA system may be used as a temporary migration data source.
+- See `memory/LONG_TERM_GOALS.md` for the modernization plan and legacy-module mapping.

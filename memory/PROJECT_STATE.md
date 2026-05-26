@@ -1,13 +1,21 @@
 # CoroMES Project State
 
-**Last Updated:** 2026-04-16
+**Last Updated:** 2026-05-26
 
 ## Overall Status
 
-- **Phase:** Initial Setup (In Progress)
+- **Phase:** Initial Setup / MES-SCADA Replacement Planning (In Progress)
 - **Current Version:** 0.1.0-alpha
 - **Framework:** .NET 10
 - **Database:** PostgreSQL (via Docker)
+
+## Long-Term Direction
+
+- Replace the legacy CTI/EPS MES and SCADA functions with CoroMES.
+- Use the current MES/SCADA system as a possible temporary data source during migration.
+- Preserve key corrugated workflows such as scheduling, roll traceability, forklift/clamp truck scanning, wet-end roll usage, butt roll handling, job completion, downtime, scrap, and ERP feedback.
+- Prefer modern web/tablet UIs, event-driven integration, and industrial protocols such as MQTT, OPC-UA, and Ethernet/IP.
+- Full modernization notes are captured in `memory/LONG_TERM_GOALS.md`.
 
 ## Solution Structure
 
