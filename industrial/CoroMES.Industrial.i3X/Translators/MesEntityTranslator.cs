@@ -96,13 +96,13 @@ public class MesEntityTranslator : IMesEntityTranslator
     public ObjectInstance ToI3XObject(Shift shift) => CreateBaseObject(shift, MesObjectTypes.ShiftType, null);
     public ObjectInstance ToI3XObject(LaborRecord laborRecord) => CreateBaseObject(laborRecord, MesObjectTypes.LaborRecordType, laborRecord.OperatorId.ToString());
 
-    private ObjectInstance CreateBaseObject<T>(T entity, string typeElementId, string? parentId) where T : Entity
+    private ObjectInstance CreateBaseObject<T>(T entity, string typeId, string? parentId) where T : Entity
     {
         return new ObjectInstance
         {
             ElementId = GenerateElementId(entity),
             DisplayName = GetDisplayName(entity),
-            TypeElementId = typeElementId,
+            TypeId = typeId,
             ParentId = parentId,
             IsComposition = false,
             IsExtended = false
@@ -285,7 +285,7 @@ public class MesEntityTranslator : IMesEntityTranslator
         {
             ElementId = GenerateElementId(operation),
             DisplayName = $"Op {operation.SequenceNumber}: {operation.OperationName}",
-            TypeElementId = MesObjectTypes.WorkOrderType, // Would need separate type; reuse for now
+            TypeId = MesObjectTypes.WorkOrderType, // Would need separate type; reuse for now
             ParentId = operation.WorkOrderId.ToString(),
             IsComposition = true,
             IsExtended = false
@@ -298,7 +298,7 @@ public class MesEntityTranslator : IMesEntityTranslator
         {
             ElementId = GenerateElementId(maintenance),
             DisplayName = $"{maintenance.MaintenanceType} on {maintenance.EquipmentId}",
-            TypeElementId = MesObjectTypes.EquipmentType, // Reuse
+            TypeId = MesObjectTypes.EquipmentType, // Reuse
             ParentId = maintenance.EquipmentId.ToString(),
             IsComposition = false,
             IsExtended = false
@@ -311,7 +311,7 @@ public class MesEntityTranslator : IMesEntityTranslator
         {
             ElementId = GenerateElementId(bom),
             DisplayName = $"BOM for Product {bom.ProductId}",
-            TypeElementId = MesObjectTypes.MaterialType, // Reuse
+            TypeId = MesObjectTypes.MaterialType, // Reuse
             IsComposition = false,
             IsExtended = false
         };
@@ -323,7 +323,7 @@ public class MesEntityTranslator : IMesEntityTranslator
         {
             ElementId = GenerateElementId(movement),
             DisplayName = $"Movement of Material {movement.MaterialId}",
-            TypeElementId = MesObjectTypes.MaterialType, // Reuse
+            TypeId = MesObjectTypes.MaterialType, // Reuse
             IsComposition = false,
             IsExtended = false
         };
@@ -335,7 +335,7 @@ public class MesEntityTranslator : IMesEntityTranslator
         {
             ElementId = GenerateElementId(item),
             DisplayName = $"Item: {item.Characteristic}",
-            TypeElementId = MesObjectTypes.InspectionType, // Reuse
+            TypeId = MesObjectTypes.InspectionType, // Reuse
             ParentId = item.InspectionId.ToString(),
             IsComposition = true,
             IsExtended = false
@@ -348,7 +348,7 @@ public class MesEntityTranslator : IMesEntityTranslator
         {
             ElementId = GenerateElementId(ncr),
             DisplayName = $"NCR: {ncr.Description}",
-            TypeElementId = MesObjectTypes.InspectionType, // Reuse
+            TypeId = MesObjectTypes.InspectionType, // Reuse
             ParentId = ncr.WorkOrderId?.ToString(),
             IsComposition = false,
             IsExtended = false

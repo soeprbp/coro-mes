@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace CoroMES.Industrial.i3X.Models;
 
 /// <summary>
@@ -5,7 +8,9 @@ namespace CoroMES.Industrial.i3X.Models;
 /// </summary>
 public class Namespace
 {
+    [JsonPropertyName("uri")]
     public string Uri { get; set; } = string.Empty;
+
     public string DisplayName { get; set; } = string.Empty;
 }
 
@@ -17,8 +22,13 @@ public class ObjectType
     public string ElementId { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string NamespaceUri { get; set; } = string.Empty;
+
+    [JsonIgnore]
     public string? SourceTypeId { get; set; }
+
+    [JsonIgnore]
     public string? Version { get; set; }
+
     public object Schema { get; set; } = new(); // JSON Schema object
 }
 
@@ -30,7 +40,10 @@ public class RelationshipType
     public string ElementId { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string NamespaceUri { get; set; } = string.Empty;
+
+    [JsonIgnore]
     public string RelationshipId { get; set; } = string.Empty;
+
     public string ReverseOf { get; set; } = string.Empty;
 }
 
@@ -54,9 +67,38 @@ public class ObjectInstance
 {
     public string ElementId { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
-    public string TypeElementId { get; set; } = string.Empty;
+
+    [JsonPropertyName("typeId")]
+    public string TypeId { get; set; } = string.Empty;
+
+    [JsonIgnore]
+    public string TypeElementId
+    {
+        get => TypeId;
+        set => TypeId = value;
+    }
+
+    [JsonPropertyName("typeElementId")]
+    public string? TypeElementIdJson
+    {
+        get => null;
+        set
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                TypeId = value;
+            }
+        }
+    }
+
     public string? ParentId { get; set; }
     public bool IsComposition { get; set; }
+
+    public string NamespaceUri { get; set; } = string.Empty;
+
+    public Dictionary<string, object>? Relationships { get; set; }
+
+    [JsonIgnore]
     public bool IsExtended { get; set; }
 }
 
@@ -69,34 +111,43 @@ public class ObjectWithMetadata : ObjectInstance
 }
 
 /// <summary>
-/// Query result for objects (without values)
-/// </summary>
-public class ObjectQueryResult
-{
-    public string ElementId { get; set; } = string.Empty;
-    public bool Success { get; set; }
-    public ObjectInstance? Result { get; set; }
-    public ApiError? Error { get; set; }
-}
-
-/// <summary>
-/// Query result for related object lookups.
-/// </summary>
-public class RelatedObjectsQueryResult
-{
-    public string ElementId { get; set; } = string.Empty;
-    public bool Success { get; set; }
-    public List<ObjectInstance>? Result { get; set; }
-    public ApiError? Error { get; set; }
-}
-
-/// <summary>
 /// Value read response for an object
 /// </summary>
 public class ValueReadResult
 {
     public bool IsComposition { get; set; }
-    public Vqt<object> Value { get; set; } = new();
+    public List<Vqt<object>> Data { get; set; } = new();
+    public List<Vqt<object>> Values { get; set; } = new();
+    public string? Quality { get; set; }
+    public DateTime? Timestamp { get; set; }
+
+    [JsonPropertyName("value")]
+    public object? CurrentValue { get; set; }
+
+    [JsonIgnore]
+    public Vqt<object> Value
+    {
+        get
+        {
+            if (Data.FirstOrDefault() is { } dataValue)
+            {
+                return dataValue;
+            }
+
+            if (CurrentValue != null || Quality != null || Timestamp.HasValue)
+            {
+                return new Vqt<object>
+                {
+                    Value = CurrentValue,
+                    Quality = Quality,
+                    Timestamp = Timestamp
+                };
+            }
+
+            return Values.FirstOrDefault() ?? new Vqt<object>();
+        }
+    }
+
     public Dictionary<string, ValueReadResult>? Components { get; set; }
 }
 
@@ -109,26 +160,21 @@ public class ObjectsValueRequest
     public int? MaxDepth { get; set; }
 }
 
-/// <summary>
-/// Bulk query response for object values
-/// </summary>
-public class ObjectsValueResponseItem
+public class CreateSubscriptionResponse
 {
-    public string ElementId { get; set; } = string.Empty;
-    public bool Success { get; set; }
-    public ValueReadResult? Result { get; set; }
-    public ApiError? Error { get; set; }
+    public string SubscriptionId { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
 }
 
-/// <summary>
-/// Bulk query response for object history.
-/// </summary>
-public class ObjectsHistoryResponseItem
+public class SubscriptionsResponse
 {
-    public string ElementId { get; set; } = string.Empty;
-    public bool Success { get; set; }
-    public List<ValueReadResult>? Result { get; set; }
-    public ApiError? Error { get; set; }
+    public List<SubscriptionSummary> SubscriptionIds { get; set; } = new();
+}
+
+public class SubscriptionSummary
+{
+    public JsonElement SubscriptionId { get; set; }
+    public string Created { get; set; } = string.Empty;
 }
 
 /// <summary>
@@ -138,15 +184,4 @@ public class ApiError
 {
     public int Code { get; set; }
     public string Message { get; set; } = string.Empty;
-}
-
-/// <summary>
-/// Standard i3X success/failure response wrapper
-/// </summary>
-public class StandardResponse<T>
-{
-    public bool Success { get; set; }
-    public T? Result { get; set; }
-    public List<T>? Results { get; set; }
-    public ApiError? Error { get; set; }
 }

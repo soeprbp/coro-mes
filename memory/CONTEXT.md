@@ -10,7 +10,10 @@ Custom Manufacturing Execution System (MES) for Welch Packaging.
 
 ## Key Integrations
 - **TrueCommerce:** EDI (X12 850/810) - existing setup
+- **CTI Connector:** Planned separate CoroMES program for using current CTI/EPS as a data source during migration. Use `$welch-cti-connector` in future Codex sessions; see ADR-011 and `docs/CTI_RESEARCH_BRIEF.md` for Welch-specific facts, public CTI/ePS product lineage, module names, discovery search terms, and connector guardrails.
 - **Upkeep.com:** CMMS API
+- **i3X:** Follow CESMII public beta/OpenAPI standard for contextualized manufacturing data. Use `memory/DECISIONS.md` ADR-009 as the endpoint checklist before changing i3X client/server code.
+- **MCP:** Expose MES data and selected operations through an MCP server for AI agents. Use `memory/DECISIONS.md` ADR-010 before designing agent-facing tools/resources.
 - **Industrial:** MQTT, OPC-UA, Ethernet/IP
 
 ## Project Structure

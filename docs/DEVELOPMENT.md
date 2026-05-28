@@ -9,6 +9,32 @@
 
 ## Getting Started
 
+### GitHub Codespaces
+
+This repository includes a `.devcontainer` setup for free DEV/TEST use in GitHub Codespaces.
+
+1. Push the branch to GitHub.
+2. In GitHub, select **Code > Codespaces > Create codespace**.
+3. Wait for package restore to finish.
+4. Start the API:
+
+```bash
+dotnet run --project src/CoroMES.Api
+```
+
+The Codespace starts PostgreSQL and MQTT automatically. The API uses PostgreSQL with this test connection:
+
+```text
+Host=postgres;Port=5432;Database=coromes;Username=postgres;Password=changeme
+```
+
+Forwarded ports are private by default:
+
+- `5000` - CoroMES API
+- `5432` - PostgreSQL
+- `1883` - MQTT
+- `9001` - MQTT WebSockets
+
 ### 1. Clone and Setup
 
 ```powershell

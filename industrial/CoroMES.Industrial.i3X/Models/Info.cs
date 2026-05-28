@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace CoroMES.Industrial.i3X.Models;
 
 /// <summary>
@@ -29,7 +31,10 @@ public class ServerInfo
     public string SpecVersion { get; set; } = string.Empty;
     public string? ServerVersion { get; set; }
     public string? ServerName { get; set; }
-    public ServerCapabilities Capabilities { get; set; } = new();
+    public string? DisplayName { get; set; }
+    public string? Description { get; set; }
+    public string? NamespaceUri { get; set; }
+    public JsonElement? Capabilities { get; set; }
 }
 
 public class ServerCapabilities

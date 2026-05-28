@@ -36,6 +36,7 @@ The current legacy corrugated MES environment includes:
 - Modular services aligned to MES domains: scheduling, work orders, floor execution, roll inventory, quality, equipment, workforce, reporting, and integration.
 - Event bus for operational events such as order release, schedule publish, roll movement, roll consumption, job start, job completion, downtime, scrap, and ERP posting.
 - API gateway for web and mobile applications.
+- MCP server for AI agents to browse, query, and safely act on MES context through governed tools/resources.
 - Edge gateway for plant equipment and scanner integration.
 - PostgreSQL-backed operational data with append-only/auditable movement and production history.
 - ERP integration service that isolates Amtech/EnCore specifics from the MES domain model.
@@ -62,9 +63,12 @@ The immediate project focus is to replace MES and SCADA functions first:
 
 - Treat the legacy system as a possible source of truth during migration.
 - Build adapters that can read from existing CTI/EPS, SQL, bridge, or file sources where necessary.
+- Build a separate CTI-to-CoroMES connector program inside the solution for ingestion, mapping, reconciliation, and sync monitoring.
 - Start with high-value operational workflows: work orders, machine status, production events, roll inventory, and floor displays.
 - Keep ERP integration bounded behind an integration service.
 - Avoid coupling the new CoroMES domain model directly to legacy table structures.
+- Design the MCP surface early, starting read-only with work orders, equipment, materials, quality records, production events, reports, and i3X object/value/history lookup.
+- Keep standard machine/MES communication translators modular, with each translator mapping its source into CoroMES/i3X object, relationship, value, and history semantics.
 
 ## Key Design Principle
 

@@ -27,12 +27,12 @@ public class I3XRepository<T> : IRepository<T> where T : Entity, new()
     private readonly II3XClient _i3xClient;
     private readonly IMesEntityTranslator _translator;
     private readonly ILogger<I3XRepository<T>> _logger;
-    private readonly string _typeElementId;
+    private readonly string _typeId;
     private readonly string _prefix;
 
     // Cache for entity type metadata
     private static readonly ConcurrentDictionary<Type, string> _prefixCache = new();
-    private static readonly ConcurrentDictionary<Type, string> _typeElementIdCache = new();
+    private static readonly ConcurrentDictionary<Type, string> _typeIdCache = new();
 
     public I3XRepository(II3XClient i3xClient, IMesEntityTranslator translator, ILogger<I3XRepository<T>> logger)
     {
@@ -40,7 +40,7 @@ public class I3XRepository<T> : IRepository<T> where T : Entity, new()
         _translator = translator;
         _logger = logger;
 
-        // Determine prefix and typeElementId from entity type
+        // Determine prefix and standard i3X typeId from entity type.
         var type = typeof(T);
         _prefix = _prefixCache.GetOrAdd(type, t =>
         {
@@ -63,7 +63,7 @@ public class I3XRepository<T> : IRepository<T> where T : Entity, new()
             return dict.TryGetValue(t, out var p) ? p : "obj";
         });
 
-        _typeElementId = _typeElementIdCache.GetOrAdd(type, t =>
+        _typeId = _typeIdCache.GetOrAdd(type, t =>
         {
             var ns = MesObjectTypes.NamespaceUri;
             return t.Name switch
@@ -103,8 +103,8 @@ public class I3XRepository<T> : IRepository<T> where T : Entity, new()
 
     public async Task<IEnumerable<T>> GetAllAsync()
     {
-        // Query all objects of the matching type using typeElementId
-        var objects = await _i3xClient.GetObjectsAsync(typeElementId: _typeElementId.Split('/').Last(), includeMetadata: false);
+        // Query all objects of the matching type using the standard i3X typeId filter.
+        var objects = await _i3xClient.GetObjectsAsync(typeId: _typeId.Split('/').Last(), includeMetadata: false);
 
         var entities = new List<T>();
         if (objects.Any())

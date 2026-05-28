@@ -1,0 +1,4 @@
+interface:
+  display_name: "Welch CTI Connector"
+  short_description: "Guide CTI/EPS migration connector work"
+  default_prompt: "Use $welch-cti-connector to design or implement safe Welch CTI/EPS data extraction into CoroMES."

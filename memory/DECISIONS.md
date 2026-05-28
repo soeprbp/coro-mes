@@ -59,3 +59,39 @@
 - **Format:** Major.Minor.Patch (e.g., 1.0.0)
 - **API Versioning:** URL-based (/api/v1/, /reporting/v1/)
 - **Status:** Accepted
+
+## ADR-009: i3X Standards Compliance
+- **Date:** 2026-05-28
+- **Decision:** CoroMES i3X integration must follow the public CESMII i3X beta/OpenAPI contract rather than endpoint behavior from any single non-compliant server.
+- **Reason:** i3X is intended as a vendor-agnostic REST API for contextualized manufacturing data. Some test endpoints may advertise capabilities before implementing the standard routes correctly.
+- **Canonical references:** https://i3x.dev/ and https://i3x.cesmii.net/v0/openapi.json
+- **Required read/explore routes:** `GET /namespaces`, `GET /objecttypes`, `POST /objecttypes/query`, `GET /relationshiptypes`, `POST /relationshiptypes/query`, `GET /objects`, `POST /objects/list`, `POST /objects/related`
+- **Required value/history routes:** `POST /objects/value`, `POST /objects/history`
+- **Required update routes:** `PUT /objects/{elementId}/value`, `PUT /objects/{elementId}/history`
+- **Required subscription routes:** `GET /subscriptions`, `POST /subscriptions`, `GET /subscriptions/{subscriptionId}`, `DELETE /subscriptions/{subscriptionId}`, `POST /subscriptions/{subscriptionId}/register`, `POST /subscriptions/{subscriptionId}/unregister`, `GET /subscriptions/{subscriptionId}/stream`, `POST /subscriptions/{subscriptionId}/sync`
+- **Implementation note:** The public beta spec returns raw arrays/objects for many endpoints; do not assume a `StandardResponse<T>` wrapper unless a specific server documents it.
+- **Status:** Accepted
+
+## ADR-010: MCP Exposure for AI Agents
+- **Date:** 2026-05-28
+- **Decision:** CoroMES should expose MES data and selected operations through a Model Context Protocol (MCP) server so AI agents can browse, query, and act on manufacturing context safely.
+- **Reason:** AI agents should be able to interact with work orders, equipment, materials, quality, production events, reporting data, and i3X-contextualized shop-floor data through a stable tool/resource interface rather than scraping application screens or calling internal APIs ad hoc.
+- **Architecture:** Add a dedicated MCP host or module that sits beside the REST/reporting APIs and reuses application services/repositories. It should not bypass domain rules, authorization, audit logging, or validation.
+- **Initial MCP surface:** read-only resources/tools for work orders, equipment, materials, machine status, production events, roll inventory, quality records, reports, and i3X object/value/history lookup.
+- **Write-capable tools:** allowed later, but must be explicit, narrowly scoped, permission-aware, auditable, and designed for human approval where needed.
+- **Security:** require authentication/authorization, plant/role scoping, rate limits, structured logging, and guardrails for destructive or externally posted actions.
+- **Status:** Accepted
+
+## ADR-011: CTI Connector and Modular i3X Translators
+- **Date:** 2026-05-28
+- **Decision:** Build the CTI-to-CoroMES integration as a separate program within the CoroMES solution, using CTI as a migration/operational data source while CoroMES is phased in.
+- **Reason:** The current CTI system contains valuable live and historical MES/SCADA context. Keeping the connector separate reduces coupling, makes migration safer, and allows CTI access logic to evolve independently from the CoroMES domain services.
+- **Architecture:** Add a dedicated connector project/module for CTI ingestion, mapping, reconciliation, and sync status. It should publish normalized data/events into CoroMES APIs/services rather than letting core modules depend directly on CTI tables, files, screens, or proprietary interfaces.
+- **Research baseline:** Initial Welch CTI/EPS facts and public product research are captured in `docs/CTI_RESEARCH_BRIEF.md`. Public research links CTI to ePS Corrugated Suite / CorrSuite terminology and module names including CorrPlan, CorrTrim, CorrTrac, CorrLink, CorrChain, pkgWARE, CBS, Escada, Auto-Count, and PC-Topp. Future CTI discovery and code should search for both Welch-specific names and these historical/current product names.
+- **Agent support:** A reusable Codex skill, `$welch-cti-connector`, was created at `C:\Users\soperbp\.codex\skills\welch-cti-connector` and validated with `quick_validate.py`. Use it for future CTI/EPS discovery, design, parser, mapping, reconciliation, and runbook work.
+- **Integration guardrail:** Start with file-based, read-only extraction that mirrors the legacy CTI/Amtech boundary, then add read-only database extraction only for domains where files are incomplete, delayed, or lossy. Preserve raw payloads, correlation IDs, source hashes, and reconciliation evidence.
+- **Framework start:** Initial connector framework lives in `integration/CoroMES.Integration.Cti` as a .NET 10 class library with file discovery, immutable raw capture, conservative parsing, validation, quarantine, DI registration, and unit tests.
+- **Translator design:** Standard machine/MES communication translators must be modular. Each translator should convert a specific source/protocol/model into the CoroMES/i3X context model through a shared abstraction.
+- **Initial translator targets:** CTI, MQTT, OPC-UA, Ethernet/IP, and other machine/MES sources as needed.
+- **i3X alignment:** Translator output should preserve i3X object type, object instance, relationship, value, and history semantics so CoroMES can expose consistent i3X and MCP views.
+- **Status:** Accepted

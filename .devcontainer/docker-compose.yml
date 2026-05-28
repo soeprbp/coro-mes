@@ -1,0 +1,48 @@
+services:
+  dev:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    command: sleep infinity
+    init: true
+    volumes:
+      - ..:/workspaces/CoroMES:cached
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://0.0.0.0:5000
+      DatabaseProvider: postgres
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=coromes;Username=postgres;Password=changeme
+      i3x__enabled: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mqtt:
+        condition: service_started
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: coromes
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: changeme
+    volumes:
+      - coromes-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d coromes"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - coromes-mqtt-data:/mosquitto/data
+      - coromes-mqtt-log:/mosquitto/log
+
+volumes:
+  coromes-postgres-data:
+  coromes-mqtt-data:
+  coromes-mqtt-log:

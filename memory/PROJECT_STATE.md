@@ -1,6 +1,6 @@
 # CoroMES Project State
 
-**Last Updated:** 2026-05-26
+**Last Updated:** 2026-05-28
 
 ## Overall Status
 
@@ -14,6 +14,7 @@
 - Replace the legacy CTI/EPS MES and SCADA functions with CoroMES.
 - Use the current MES/SCADA system as a possible temporary data source during migration.
 - Preserve key corrugated workflows such as scheduling, roll traceability, forklift/clamp truck scanning, wet-end roll usage, butt roll handling, job completion, downtime, scrap, and ERP feedback.
+- CTI/EPS public research is captured in `docs/CTI_RESEARCH_BRIEF.md`: CTI product lineage, ePS/CorrSuite naming, Amtech Encore context, Welch-specific known services, connector guardrails, and discovery search terms.
 - Prefer modern web/tablet UIs, event-driven integration, and industrial protocols such as MQTT, OPC-UA, and Ethernet/IP.
 - Full modernization notes are captured in `memory/LONG_TERM_GOALS.md`.
 
@@ -44,6 +45,7 @@
 | Project | Purpose |
 |---------|---------|
 | CoroMES.Integration.TrueCommerce | EDI (X12 850/810) |
+| CoroMES.Integration.Cti | CTI/EPS legacy MES migration connector framework |
 | CoroMES.Integration.Upkeep | CMMS API |
 | CoroMES.Integration.IIoT | Industrial IoT gateway |
 
@@ -83,6 +85,10 @@
 - [x] Created Shop Floor Displays (web/displays/viewer.html)
 - [x] Created Display Builder (web/displays/builder.html)
 - [x] Created documentation
+- [x] Added CTI/EPS research and coding-agent brief (`docs/CTI_RESEARCH_BRIEF.md`) and linked it from the docs index
+- [x] Created reusable Codex skill `$welch-cti-connector` at `C:\Users\soperbp\.codex\skills\welch-cti-connector`
+- [x] Backed up `$welch-cti-connector` skill in the repo under `docs/skills/welch-cti-connector`
+- [x] Started CTI connector framework as .NET project `integration/CoroMES.Integration.Cti`
 
 ## Admin Interface Features
 
@@ -111,6 +117,7 @@
 ## Key References
 
 - **EDI:** TrueCommerce (existing setup, connects via API/inbound files)
+- **CTI/EPS:** Use `$welch-cti-connector` and `docs/CTI_RESEARCH_BRIEF.md` for current Welch baseline and public CTI/ePS research before building the migration connector
 - **CMMS:** Upkeep.com API
 - **Industrial:** MQTT (sensors), OPC-UA (SCADA/Siemens), Ethernet/IP (Allen-Bradley)
 

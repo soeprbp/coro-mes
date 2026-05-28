@@ -43,6 +43,19 @@ upkeep:
   pullWorkOrders: true
   pushEquipment: true
 
+# CTI / EPS Legacy MES Connector
+# Disabled by default. Use read-only source shares and preserve raw payloads.
+cti:
+  enabled: false
+  rawLandingRoot: "./data/cti/raw"
+  quarantineRoot: "./data/cti/quarantine"
+  archiveRoot: "./data/cti/archive"
+  textEncoding: "utf-8"
+  defaultExtensions:
+    - ".dat"
+    - ".cov"
+  sourceFolders: []
+
 # Industrial Communications
 industrial:
   enabled: true

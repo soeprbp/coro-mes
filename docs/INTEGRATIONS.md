@@ -4,6 +4,57 @@ CoroMES integrates with external systems for EDI, CMMS, and Industrial IoT.
 
 ---
 
+## CTI / EPS Legacy MES
+
+### Overview
+The CTI connector is the CoroMES framework for safely ingesting data from Welch's legacy Corrugated Technologies Inc. / eProductivity Software environment during migration. It is intentionally file-first and read-only toward CTI and Amtech production systems.
+
+See [CTI / EPS Research Brief](./CTI_RESEARCH_BRIEF.md) before changing this integration.
+
+### Current Framework
+The initial .NET module is `integration/CoroMES.Integration.Cti`.
+
+It currently provides:
+
+| Component | Purpose |
+|-----------|---------|
+| `ICtiFileDiscoveryService` | Finds configured `.dat` / `.cov` source files without modifying them |
+| `ICtiRawFileStore` | Copies files into immutable raw landing and quarantine folders |
+| `ICtiFileParser` | Conservatively parses delimited files and preserves unknown layouts |
+| `ICtiParsedFileValidator` | Performs basic schema/file sanity checks |
+| `ICtiIngestionPipeline` | Orchestrates discover → raw capture → parse → validate → quarantine/result |
+
+### Configuration
+
+```yaml
+cti:
+  enabled: false
+  rawLandingRoot: "./data/cti/raw"
+  quarantineRoot: "./data/cti/quarantine"
+  archiveRoot: "./data/cti/archive"
+  textEncoding: "utf-8"
+  defaultExtensions:
+    - ".dat"
+    - ".cov"
+  sourceFolders:
+    - name: "cti-system-bridge"
+      path: "\\\\server\\share\\cti\\outbound"
+      extensions:
+        - ".dat"
+        - ".cov"
+```
+
+### Guardrails
+
+- Do not write directly to CTI or Amtech production databases.
+- Treat source files as read-only.
+- Capture raw payloads before parsing.
+- Quarantine malformed files instead of deleting or changing them.
+- Add real CTI layouts only after representative Welch sample files are collected.
+- Validate counts, quantities, hashes, and golden transactions before cutover.
+
+---
+
 ## TrueCommerce (EDI)
 
 ### Overview

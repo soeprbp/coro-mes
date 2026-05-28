@@ -1,0 +1,53 @@
+{
+  "name": "CoroMES DEV",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "dev",
+  "workspaceFolder": "/workspaces/CoroMES",
+  "remoteUser": "vscode",
+  "shutdownAction": "stopCompose",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+  "forwardPorts": [5000, 5432, 1883, 9001],
+  "portsAttributes": {
+    "5000": {
+      "label": "CoroMES API",
+      "onAutoForward": "openPreview",
+      "protocol": "http",
+      "visibility": "private"
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "silent",
+      "visibility": "private"
+    },
+    "1883": {
+      "label": "MQTT",
+      "onAutoForward": "silent",
+      "visibility": "private"
+    },
+    "9001": {
+      "label": "MQTT WebSockets",
+      "onAutoForward": "silent",
+      "visibility": "private"
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/scripts/post-create.sh",
+  "postStartCommand": "bash .devcontainer/scripts/post-start.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.csharp",
+        "ms-vscode.cpptools",
+        "ms-azuretools.vscode-docker",
+        "GitHub.vscode-github-actions",
+        "humao.rest-client"
+      ],
+      "settings": {
+        "dotnet.server.useOmnisharp": false,
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}

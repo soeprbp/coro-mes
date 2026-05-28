@@ -6,6 +6,7 @@
     <Project Path="industrial/CoroMES.Industrial.OpcUa/CoroMES.Industrial.OpcUa.csproj" />
   </Folder>
   <Folder Name="/integration/">
+    <Project Path="integration/CoroMES.Integration.Cti/CoroMES.Integration.Cti.csproj" />
     <Project Path="integration/CoroMES.Integration.IIoT/CoroMES.Integration.IIoT.csproj" />
     <Project Path="integration/CoroMES.Integration.TrueCommerce/CoroMES.Integration.TrueCommerce.csproj" />
     <Project Path="integration/CoroMES.Integration.Upkeep/CoroMES.Integration.Upkeep.csproj" />

@@ -23,6 +23,8 @@ Welcome to the CoroMES documentation. Use this index to navigate the system.
 ## Integrations
 
 - [Integrations Overview](./INTEGRATIONS.md)
+- [CTI / EPS Research Brief](./CTI_RESEARCH_BRIEF.md) - CTI/EPS public research and CoroMES connector agent guidance
+- [Welch CTI Connector Skill Backup](./skills/welch-cti-connector/SKILL.md) - repo backup of the reusable Codex skill
 - [TrueCommerce EDI](./INTEGRATIONS.md#trucommerce) - EDI integration
 - [Upkeep.com CMMS](./INTEGRATIONS.md#upkeep) - Maintenance system integration
 
