@@ -25,10 +25,11 @@ For a stricter local gate:
 
 ## Baseline Findings To Track
 
-- High: unauthenticated API endpoints can create, update, and delete operational MES records. Add ASP.NET Core authentication/authorization before non-local deployment.
+- High: the standalone `CoroMES.Api` host still needs the same auth gate or should remain unexposed while `CoroMES.Web` is the forward host.
+- Medium: the Blazor host has a first cookie-based admin gate, but it is not final enterprise identity. Replace access-code auth with the chosen identity provider before production use.
+- Medium: audit logging currently covers first-pass equipment mutations. Expand audit coverage to all work order, material, operator, Upkeep, and future write actions.
 - Medium: development config uses wildcard hosts, sample database passwords, anonymous MQTT, and HTTP i3X defaults. Keep these local-only and require environment overrides for shared environments.
 - Medium: CTI raw/quarantine/archive payloads may contain customer, schedule, production, or order data. Keep payload directories out of Git and restrict filesystem permissions.
-- Medium: browser admin UI has client-side-only password gating. Treat it as a prototype until it is backed by server-side auth.
 
 ## Reporting Format
 

@@ -34,6 +34,7 @@
 - [x] Preserve the pre-Blazor source state at branch/tag `pre-blazor-2026-06-10`
 - [x] Record backup zip path: `C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\CoroMES-source-backup-2026-06-10.zip`
 - [x] Add first Blazor admin/API auth gate from Jane security pass
+- [x] Add first-pass audit logging for equipment create/update/delete
 - [ ] Replace static admin pages with Blazor routes while preserving `/admin` compatibility
 - [ ] Replace static display viewer and builder pages with Blazor routes while preserving `/displays/viewer.html` and `/displays/builder.html` redirects
 - [ ] Keep Blazor screens aligned with current API route parity in `docs/API.md`
@@ -45,7 +46,7 @@
 - [ ] Decide whether to implement the documented industrial API or reduce its documented scope
 - [ ] Replace placeholder Upkeep behavior with a real integration strategy
 - [ ] Replace temporary admin access-code gate with the chosen enterprise identity model
-- [ ] Add audit logging for admin/API mutations
+- [ ] Expand audit logging beyond equipment mutations
 - [ ] Expand inventory, workforce, and quality write workflows
 
 ### 6. Testing

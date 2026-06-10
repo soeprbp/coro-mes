@@ -92,6 +92,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - optional i3X repository mode exists behind configuration
 - CTI ingestion primitives are implemented and unit-tested
 - first Blazor admin auth gate protects `/admin`, `/displays/builder`, and `/api/v1/*`
+- first-pass audit logging records equipment create/update/delete actions
 
 ## Important Limitations
 
@@ -99,6 +100,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - no reporting API implementation despite the project and older docs
 - no industrial API surface despite earlier documentation
 - first auth gate is cookie-based and suitable for migration/local control, not final enterprise identity
+- audit logging covers equipment mutations only so far
 - many integrations are planned boundaries rather than complete implementations
 - some prototype behaviors are still hard-coded or placeholder-based
 - several memory and doc files had drifted from the code before this update
@@ -112,11 +114,12 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - Blazor fork preservation at branch/tag `pre-blazor-2026-06-10`
 - source backup zip captured at `C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\CoroMES-source-backup-2026-06-10.zip`
 - Jane security pass added the first Blazor admin/API auth gate
+- first audit foundation added `AuditLog` storage and equipment mutation logging
 
 ## Recommended Next Steps
 
 1. replace the temporary admin access-code gate with the chosen enterprise identity model
-2. add audit logging for admin/API mutations
+2. add integration tests for auth and audit behavior
 3. turn the CTI ingestion framework into a runnable connector workflow or host
 4. collect real Welch CTI sample files and source-system inventory
 5. continue building `CoroMES.Web` as the forward Blazor host while preserving API route parity

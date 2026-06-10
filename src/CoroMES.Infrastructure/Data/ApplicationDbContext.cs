@@ -30,6 +30,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<InspectionItem> InspectionItems => Set<InspectionItem>();
     public DbSet<NonConformance> NonConformances => Set<NonConformance>();
 
+    // Audit
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -76,6 +79,20 @@ public class ApplicationDbContext : DbContext
         });
 
         // Configure relationships
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Actor).IsRequired().HasMaxLength(120);
+            entity.Property(e => e.Action).IsRequired().HasMaxLength(80);
+            entity.Property(e => e.EntityName).IsRequired().HasMaxLength(120);
+            entity.Property(e => e.Route).HasMaxLength(300);
+            entity.Property(e => e.IpAddress).HasMaxLength(80);
+            entity.Property(e => e.UserAgent).HasMaxLength(300);
+            entity.Property(e => e.Summary).IsRequired().HasMaxLength(1000);
+            entity.HasIndex(e => e.OccurredAtUtc);
+            entity.HasIndex(e => new { e.EntityName, e.EntityId });
+        });
+
         modelBuilder.Entity<WorkOrderOperation>()
             .HasOne(w => w.WorkOrder)
             .WithMany(w => w.Operations)

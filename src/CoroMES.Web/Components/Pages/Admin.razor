@@ -7,6 +7,8 @@
 @attribute [Authorize(Policy = "AdminOnly")]
 @inject IEquipmentRepository EquipmentRepository
 @inject IUpkeepAssetCatalog UpkeepAssetCatalog
+@inject IAuditLogService AuditLog
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
 
 <div class="app-shell">
@@ -238,8 +240,8 @@
             <header class="page-header"><div><p class="eyebrow">System</p><h1>Settings</h1></div></header>
             <section class="panel narrow">
                 <label>API Base URL <input value="http://localhost:5000" readonly /></label>
-                <label>Admin Mode <input value="Development prototype" readonly /></label>
-                <p class="muted">Server-side authentication is still planned. This Blazor page replaces the static prototype shell but keeps the same development-only posture.</p>
+                <label>Admin Mode <input value="First auth gate enabled" readonly /></label>
+                <p class="muted">This Blazor page is protected by the migration admin gate. Replace the access-code flow with enterprise identity before production use.</p>
             </section>
         }
     </main>
@@ -460,12 +462,27 @@
 
         if (editingId.HasValue)
         {
+            var before = equipment.FirstOrDefault(item => item.Id == editingId.Value);
             await EquipmentRepository.UpdateAsync(form);
+            await AuditLog.RecordAsync(null, new AuditLogEntry(
+                "Update",
+                nameof(Equipment),
+                form.Id,
+                $"{DescribeEquipment(before)} -> {DescribeEquipment(form)}",
+                Actor: await GetCurrentActorAsync(),
+                Route: "/admin/equipment"));
             message = $"{form.Code} updated.";
         }
         else
         {
             await EquipmentRepository.AddAsync(form);
+            await AuditLog.RecordAsync(null, new AuditLogEntry(
+                "Create",
+                nameof(Equipment),
+                form.Id,
+                DescribeEquipment(form),
+                Actor: await GetCurrentActorAsync(),
+                Route: "/admin/equipment"));
             message = $"{form.Code} added.";
         }
 
@@ -475,7 +492,15 @@
 
     private async Task DeleteEquipment(int id)
     {
+        var deleted = equipment.FirstOrDefault(item => item.Id == id);
         await EquipmentRepository.DeleteAsync(id);
+        await AuditLog.RecordAsync(null, new AuditLogEntry(
+            "Delete",
+            nameof(Equipment),
+            id,
+            DescribeEquipment(deleted),
+            Actor: await GetCurrentActorAsync(),
+            Route: "/admin/equipment"));
         await LoadEquipment();
     }
 
@@ -488,6 +513,22 @@
     private void SaveProtocolSettings()
     {
         protocolMessage = $"Protocol settings saved at {DateTime.Now:t}.";
+    }
+
+    private async Task<string> GetCurrentActorAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        return authState.User.Identity?.Name ?? "unknown";
+    }
+
+    private static string DescribeEquipment(Equipment? item)
+    {
+        if (item is null)
+        {
+            return "Equipment not found";
+        }
+
+        return $"Code={item.Code}; Name={item.Name}; Status={item.Status}; Location={item.Location ?? "n/a"}; UpKeepAssetId={item.UpkeepAssetId?.ToString() ?? "none"}";
     }
 
     private sealed class ProtocolSetting(string name, bool enabled, string host, int port)

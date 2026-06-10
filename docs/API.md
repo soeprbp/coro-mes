@@ -13,6 +13,8 @@ The repository currently exposes a single Minimal API host.
 - Legacy static admin URL: `/admin`
 - Legacy static display URLs: `/displays/viewer.html`, `/displays/builder.html`
 
+In `CoroMES.Web`, `/api/v1/*` is protected by the first admin auth gate. `/health` remains anonymous. The standalone `CoroMES.Api` host remains a compatibility/reference host and still needs equivalent auth before any non-local exposure.
+
 ## Implemented Endpoints
 
 ### Health
@@ -51,6 +53,20 @@ Notes:
 
 - this is one of the more complete resource areas in the current API
 - the admin HTML prototype primarily exercises this surface
+- equipment create/update/delete actions in `CoroMES.Web` write audit log entries
+
+### Audit
+
+```text
+GET /api/v1/audit
+GET /api/v1/audit?entityName=Equipment&take=100
+```
+
+Notes:
+
+- this endpoint is admin-protected in `CoroMES.Web`
+- returns recent audit records newest first
+- first-pass audit coverage records equipment create/update/delete from both the Blazor admin UI and the JSON API
 
 ### Materials
 
@@ -154,7 +170,8 @@ The following surfaces were described in earlier docs but are not implemented in
 - `/api/v1/workforce/*`
 - work order lifecycle actions such as start and complete
 - quality write endpoints
-- authentication and rate limiting
+- enterprise identity integration and rate limiting
+- audit coverage beyond first-pass equipment mutations
 
 ## Response Style
 
@@ -163,7 +180,7 @@ The current API is pragmatic and prototype-oriented:
 - plain JSON payloads
 - no standard envelope across all endpoints
 - no paging contract beyond local `Take(100)` usage on some lists
-- no auth layer in development mode
+- first admin auth gate in `CoroMES.Web`; standalone `CoroMES.Api` still needs parity before exposure
 
 ## Testing Status
 

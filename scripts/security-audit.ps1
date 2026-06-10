@@ -90,7 +90,7 @@ Write-Host "== Secret and unsafe-default heuristics =="
 $scanFiles = Get-ChildItem -Recurse -File |
     Where-Object {
         $_.FullName -notmatch "\\(\.git|bin|obj|TestResults|coverage|packages|node_modules)\\" -and
-        $_.Extension -notin @(".dll", ".exe", ".pdb", ".png", ".jpg", ".jpeg", ".gif", ".ico", ".db", ".db-shm", ".db-wal", ".sqlite", ".sqlite-shm", ".sqlite-wal", ".sqlite3", ".sqlite3-shm", ".sqlite3-wal")
+        $_.Extension -notin @(".dll", ".exe", ".pdb", ".png", ".jpg", ".jpeg", ".gif", ".ico", ".log", ".db", ".db-shm", ".db-wal", ".sqlite", ".sqlite-shm", ".sqlite-wal", ".sqlite3", ".sqlite3-shm", ".sqlite3-wal")
     }
 
 $patterns = @(

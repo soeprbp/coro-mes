@@ -29,7 +29,18 @@ The Blazor forward host now uses ASP.NET Core cookie authentication as the first
 - Development fallback access code: `dev-admin` when `Auth:AdminAccessCode` is not configured.
 - Production/admin override: set `Auth__AdminAccessCode` through environment variables, user secrets, or deployment configuration. Do not commit real access codes.
 
-This is a migration gate, not the final identity model. Before production use, replace or extend it with the chosen plant/user identity provider, stronger role mapping, audit logging for mutations, and a CSRF strategy for any browser-called JSON mutation endpoints.
+This is a migration gate, not the final identity model. Before production use, replace or extend it with the chosen plant/user identity provider, stronger role mapping, full audit coverage for mutations, and a CSRF strategy for any browser-called JSON mutation endpoints.
+
+## Audit Logging
+
+The first audit foundation records equipment create/update/delete actions from both the Blazor admin page and the JSON API.
+
+- Entity: `AuditLog`
+- Storage: `ApplicationDbContext.AuditLogs`
+- Read endpoint: `GET /api/v1/audit`
+- First covered entity: `Equipment`
+
+The next audit expansion should cover work orders, materials, operators, Upkeep sync/downtime actions, and any future i3X or industrial write paths.
 
 ## API Route Parity
 
@@ -37,6 +48,7 @@ The Blazor app should preserve the current API route contract while it replaces 
 
 ```text
 GET    /health
+GET    /api/v1/audit
 GET    /api/v1/workorders
 GET    /api/v1/workorders/{id}
 POST   /api/v1/workorders
@@ -101,4 +113,5 @@ Suggested forward mappings:
 - Anonymous requests to `/admin/equipment` redirect to `/login`.
 - Anonymous requests to `/api/v1/equipment` return `401`.
 - Signed-in admin requests can reach `/admin/equipment` and `/api/v1/equipment`.
+- Equipment create/update/delete writes audit records.
 - `/displays/viewer?id=preview&type=oee` remains reachable without admin sign-in.
