@@ -4,7 +4,9 @@
 @page "/admin/protocols"
 @page "/admin/settings"
 @rendermode InteractiveServer
+@using System.Net.Http.Json
 @inject IEquipmentRepository EquipmentRepository
+@inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Navigation
 
 <div class="app-shell">
@@ -63,18 +65,18 @@
                 <button class="button primary" @onclick="NewEquipment">New</button>
             </header>
 
-            <section class="split-layout">
+            <section class="split-layout wide-form">
                 <div class="panel">
                     <div class="panel-title"><h2>@(editingId.HasValue ? "Edit Equipment" : "Add Equipment")</h2></div>
                     <div class="form-grid">
                         <label>Code <input @bind="form.Code" /></label>
                         <label>Name <input @bind="form.Name" /></label>
+                        <label>Location <input @bind="form.Location" placeholder="Building, line, or area" /></label>
                         <label>IP Address <input @bind="form.IpAddress" /></label>
                         <label>Protocol <input @bind="form.Protocol" placeholder="auto, mqtt, opcua" /></label>
                         <label>Parts/Minute <input type="number" @bind="form.PartsPerMinute" /></label>
                         <label>Sq Ft/Day <input type="number" @bind="form.SqFtPerDay" /></label>
                         <label>Cycle Seconds <input type="number" @bind="form.CycleTimeSeconds" /></label>
-                        <label>Upkeep Asset Id <input type="number" @bind="form.UpkeepAssetId" /></label>
                         <label>
                             Type
                             <select @bind="form.Type">
@@ -94,6 +96,55 @@
                             </select>
                         </label>
                     </div>
+                    <div class="match-box">
+                        <div class="panel-title compact">
+                            <div>
+                                <h3>UpKeep Asset Match</h3>
+                                <p class="muted">Link this MES equipment record to its CMMS asset.</p>
+                            </div>
+                            @if (form.UpkeepAssetId.HasValue)
+                            {
+                                <button class="button small" @onclick="ClearUpkeepMatch">Unmatch</button>
+                            }
+                        </div>
+
+                        <label>Search UpKeep assets <input @bind="upkeepSearch" @bind:event="oninput" placeholder="Search by asset, location, or id" /></label>
+
+                        @if (selectedUpkeepAsset is not null)
+                        {
+                            <div class="selected-match">
+                                <span class="pill good">Matched</span>
+                                <strong>@selectedUpkeepAsset.Name</strong>
+                                <span>@selectedUpkeepAsset.Location</span>
+                                <code>@selectedUpkeepAsset.Id</code>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="muted">No UpKeep asset selected.</p>
+                        }
+
+                        <div class="asset-picker">
+                            @foreach (var asset in FilteredUpkeepAssets)
+                            {
+                                var isSelected = form.UpkeepAssetId == asset.Id;
+                                var isSuggested = SuggestedUpkeepAssets.Any(match => match.Id == asset.Id);
+                                <button class="asset-option @(isSelected ? "selected" : string.Empty)" @onclick="() => SelectUpkeepAsset(asset.Id)">
+                                    <span>
+                                        <strong>@asset.Name</strong>
+                                        <small>@asset.Type - @asset.Location</small>
+                                    </span>
+                                    <span class="asset-badges">
+                                        @if (isSuggested)
+                                        {
+                                            <span class="pill warn">Suggested</span>
+                                        }
+                                        <code>@asset.Id</code>
+                                    </span>
+                                </button>
+                            }
+                        </div>
+                    </div>
                     <div class="action-row">
                         <button class="button primary" @onclick="SaveEquipment">Save</button>
                         <button class="button" @onclick="NewEquipment">Clear</button>
@@ -111,15 +162,26 @@
                     </div>
                     <div class="table-wrap">
                         <table>
-                            <thead><tr><th>Code</th><th>Name</th><th>Status</th><th>Protocol</th><th></th></tr></thead>
+                            <thead><tr><th>Code</th><th>Name</th><th>Status</th><th>Protocol</th><th>UpKeep</th><th></th></tr></thead>
                             <tbody>
                                 @foreach (var item in equipment)
                                 {
+                                    var match = GetUpkeepAsset(item.UpkeepAssetId);
                                     <tr>
                                         <td>@item.Code</td>
                                         <td>@item.Name</td>
                                         <td><span class="pill @StatusClass(item.Status)">@item.Status</span></td>
                                         <td>@(item.Protocol ?? "manual")</td>
+                                        <td>
+                                            @if (match is null)
+                                            {
+                                                <span class="pill neutral">Unmatched</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="linked-asset">@match.Name <code>@match.Id</code></span>
+                                            }
+                                        </td>
                                         <td class="row-actions">
                                             <button class="button small" @onclick="() => EditEquipment(item)">Edit</button>
                                             <button class="button small danger" @onclick="() => DeleteEquipment(item.Id)">Delete</button>
@@ -145,6 +207,7 @@
                     {
                         <article class="asset-card">
                             <strong>@asset.Name</strong><span>@asset.Type</span><span>@asset.Location</span><code>@asset.Id</code>
+                            <span class="pill @UpkeepAssetStatusClass(asset.Id)">@UpkeepAssetStatusLabel(asset.Id)</span>
                         </article>
                     }
                 </div>
@@ -182,14 +245,6 @@
 </div>
 
 @code {
-    private readonly List<UpkeepAsset> upkeepAssets =
-    [
-        new(101, "Corrugator Main Drive", "Equipment", "Building A"),
-        new(102, "Bender Unit A1", "Equipment", "Building B"),
-        new(103, "Conveyor Belt Line 1", "Equipment", "Building A"),
-        new(104, "Temperature Sensor Array", "Sensor", "Building A")
-    ];
-
     private readonly List<ProtocolSetting> protocolSettings =
     [
         new("MQTT", true, "localhost", 1883),
@@ -198,16 +253,60 @@
     ];
 
     private List<Equipment> equipment = [];
+    private List<UpkeepAsset> upkeepAssets = [];
     private Equipment form = new();
     private int? editingId;
     private string section = "dashboard";
     private string? message;
     private string syncStatus = "Last sync: Never";
     private string? protocolMessage;
+    private string upkeepSearch = string.Empty;
+    private UpkeepAsset? selectedUpkeepAsset => GetUpkeepAsset(form.UpkeepAssetId);
+
+    private IEnumerable<UpkeepAsset> SuggestedUpkeepAssets
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(form.Code) && string.IsNullOrWhiteSpace(form.Name))
+            {
+                return [];
+            }
+
+            return upkeepAssets
+                .Select(asset => new { Asset = asset, Score = UpkeepMatchScore(asset) })
+                .Where(match => match.Score > 0)
+                .OrderByDescending(match => match.Score)
+                .ThenBy(match => match.Asset.Name)
+                .Take(3)
+                .Select(match => match.Asset);
+        }
+    }
+
+    private IEnumerable<UpkeepAsset> FilteredUpkeepAssets
+    {
+        get
+        {
+            var query = upkeepSearch.Trim();
+            var assets = string.IsNullOrWhiteSpace(query)
+                ? upkeepAssets
+                : upkeepAssets.Where(asset =>
+                    asset.Id.ToString().Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                    asset.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                    asset.Type.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                    asset.Location.Contains(query, StringComparison.OrdinalIgnoreCase));
+
+            var suggestedIds = SuggestedUpkeepAssets.Select(asset => asset.Id).ToHashSet();
+            return assets
+                .OrderByDescending(asset => form.UpkeepAssetId == asset.Id)
+                .ThenByDescending(asset => suggestedIds.Contains(asset.Id))
+                .ThenBy(asset => asset.Name);
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
         section = ResolveSection();
+        await LoadUpkeepAssets();
         await LoadEquipment();
     }
 
@@ -252,6 +351,7 @@
         editingId = null;
         form = new Equipment { Type = EquipmentType.Machine, Status = EquipmentStatus.Available, Protocol = "manual" };
         message = null;
+        upkeepSearch = string.Empty;
     }
 
     private void EditEquipment(Equipment item)
@@ -262,6 +362,7 @@
             Id = item.Id,
             Code = item.Code,
             Name = item.Name,
+            Location = item.Location,
             Type = item.Type,
             Status = item.Status,
             IpAddress = item.IpAddress,
@@ -271,7 +372,68 @@
             CycleTimeSeconds = item.CycleTimeSeconds,
             UpkeepAssetId = item.UpkeepAssetId
         };
+        upkeepSearch = GetUpkeepAsset(item.UpkeepAssetId)?.Name ?? string.Empty;
         message = null;
+    }
+
+    private UpkeepAsset? GetUpkeepAsset(int? upkeepAssetId)
+    {
+        return upkeepAssetId.HasValue
+            ? upkeepAssets.FirstOrDefault(asset => asset.Id == upkeepAssetId.Value)
+            : null;
+    }
+
+    private void SelectUpkeepAsset(int upkeepAssetId)
+    {
+        form.UpkeepAssetId = upkeepAssetId;
+        upkeepSearch = GetUpkeepAsset(upkeepAssetId)?.Name ?? string.Empty;
+    }
+
+    private void ClearUpkeepMatch()
+    {
+        form.UpkeepAssetId = null;
+        upkeepSearch = string.Empty;
+    }
+
+    private int UpkeepMatchScore(UpkeepAsset asset)
+    {
+        var score = 0;
+
+        if (!string.IsNullOrWhiteSpace(form.Name) &&
+            asset.Name.Contains(form.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            score += 4;
+        }
+
+        if (!string.IsNullOrWhiteSpace(form.Code) &&
+            asset.Name.Contains(form.Code, StringComparison.OrdinalIgnoreCase))
+        {
+            score += 3;
+        }
+
+        if (!string.IsNullOrWhiteSpace(form.Location) &&
+            asset.Location.Contains(form.Location, StringComparison.OrdinalIgnoreCase))
+        {
+            score += 2;
+        }
+
+        if (!string.IsNullOrWhiteSpace(form.Name))
+        {
+            var nameWords = form.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            score += nameWords.Count(word => word.Length > 2 && asset.Name.Contains(word, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return score;
+    }
+
+    private string UpkeepAssetStatusLabel(int upkeepAssetId)
+    {
+        return equipment.Any(item => item.UpkeepAssetId == upkeepAssetId) ? "Matched" : "Available";
+    }
+
+    private string UpkeepAssetStatusClass(int upkeepAssetId)
+    {
+        return equipment.Any(item => item.UpkeepAssetId == upkeepAssetId) ? "good" : "neutral";
     }
 
     private async Task SaveEquipment()
@@ -280,6 +442,19 @@
         {
             message = "Code and name are required.";
             return;
+        }
+
+        if (form.UpkeepAssetId.HasValue)
+        {
+            var duplicate = equipment.FirstOrDefault(item =>
+                item.UpkeepAssetId == form.UpkeepAssetId &&
+                item.Id != editingId);
+
+            if (duplicate is not null)
+            {
+                message = $"UpKeep asset {form.UpkeepAssetId} is already matched to {duplicate.Code}.";
+                return;
+            }
         }
 
         if (editingId.HasValue)
@@ -295,6 +470,26 @@
 
         NewEquipment();
         await LoadEquipment();
+    }
+
+    private async Task LoadUpkeepAssets()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient();
+            client.BaseAddress = new Uri(Navigation.BaseUri);
+            upkeepAssets = await client.GetFromJsonAsync<List<UpkeepAsset>>("api/v1/integration/upkeep/assets") ?? [];
+        }
+        catch
+        {
+            upkeepAssets =
+            [
+                new(101, "Corrugator Main Drive", "Equipment", "Building A"),
+                new(102, "Bender Unit A1", "Equipment", "Building B"),
+                new(103, "Conveyor Belt Line 1", "Equipment", "Building A"),
+                new(104, "Temperature Sensor Array", "Sensor", "Building A")
+            ];
+        }
     }
 
     private async Task DeleteEquipment(int id)

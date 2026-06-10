@@ -12,6 +12,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.Services.AddHttpClient();
+
 var dbProvider = builder.Configuration.GetValue<string>("DatabaseProvider") ?? "sqlite";
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
