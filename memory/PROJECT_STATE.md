@@ -1,128 +1,124 @@
 # CoroMES Project State
 
-**Last Updated:** 2026-05-28
+**Last Updated:** 2026-06-10
 
 ## Overall Status
 
-- **Phase:** Initial Setup / MES-SCADA Replacement Planning (In Progress)
+- **Phase:** Prototype foundation complete; integration-driven modernization work in progress
 - **Current Version:** 0.1.0-alpha
 - **Framework:** .NET 10
-- **Database:** PostgreSQL (via Docker)
+- **Primary Host:** `src/CoroMES.Api`
+- **Default Local Database:** SQLite
+- **Production-Intended Database:** PostgreSQL
+
+## Executive Summary
+
+CoroMES is no longer just a scaffold. The repository now contains:
+
+- a working Minimal API host
+- domain entities and repository interfaces
+- EF Core persistence and migrations
+- static admin and shop-floor display prototypes
+- an i3X client and repository adapter layer
+- a CTI/EPS file-ingestion framework designed for safe migration work
+
+The codebase still stops short of a full MES application. Several architectural boundaries exist as project shells or planned expansion points rather than finished product areas.
 
 ## Long-Term Direction
 
 - Replace the legacy CTI/EPS MES and SCADA functions with CoroMES.
-- Use the current MES/SCADA system as a possible temporary data source during migration.
-- Preserve key corrugated workflows such as scheduling, roll traceability, forklift/clamp truck scanning, wet-end roll usage, butt roll handling, job completion, downtime, scrap, and ERP feedback.
-- CTI/EPS public research is captured in `docs/CTI_RESEARCH_BRIEF.md`: CTI product lineage, ePS/CorrSuite naming, Amtech Encore context, Welch-specific known services, connector guardrails, and discovery search terms.
-- Prefer modern web/tablet UIs, event-driven integration, and industrial protocols such as MQTT, OPC-UA, and Ethernet/IP.
-- Full modernization notes are captured in `memory/LONG_TERM_GOALS.md`.
+- Use the current MES/SCADA system as a temporary data source during migration where useful.
+- Preserve corrugated-specific workflows such as scheduling visibility, roll traceability, forklift/clamp truck scanning, wet-end roll usage, butt roll handling, downtime, scrap, and ERP feedback.
+- Prefer modern web or tablet UX, event-driven integration, and managed industrial connectivity.
+- Keep CTI-specific migration logic isolated from the long-term CoroMES domain model.
 
 ## Solution Structure
 
 - **Solution File:** `CoroMES.sln`
-- **Total Projects:** 19 projects
+- **Total Projects:** 19
 
-### Core Layer (src/)
-| Project | Purpose |
-|---------|---------|
-| CoroMES.Api | REST API (Minimal API) |
-| CoroMES.Core | Domain entities, interfaces, enums |
-| CoroMES.Application | Use cases, DTOs, services |
-| CoroMES.Infrastructure | EF Core, PostgreSQL, external services |
-| CoroMES.Reporting | Reporting API for BI tools |
+### Core Layer (`src/`)
 
-### Modules Layer (modules/)
-| Project | Purpose |
-|---------|---------|
-| CoroMES.Production | Work orders, operations, tracking |
-| CoroMES.Quality | Inspections, NCR, traceability |
-| CoroMES.Inventory | Materials, BOM, movements |
-| CoroMES.Equipment | Machines, maintenance, status |
-| CoroMES.Workforce | Shifts, labor, operators |
+| Project | Current Reality |
+|---------|-----------------|
+| CoroMES.Api | Active Minimal API host and static file host |
+| CoroMES.Core | Active domain entities, enums, interfaces |
+| CoroMES.Application | Present, but still light; not yet the full service/use-case layer |
+| CoroMES.Infrastructure | Active EF Core, repositories, migrations, i3X adapters |
+| CoroMES.Reporting | Present as a boundary, not yet a real reporting API |
 
-### Integration Layer (integration/)
-| Project | Purpose |
-|---------|---------|
-| CoroMES.Integration.TrueCommerce | EDI (X12 850/810) |
-| CoroMES.Integration.Cti | CTI/EPS legacy MES migration connector framework |
-| CoroMES.Integration.Upkeep | CMMS API |
-| CoroMES.Integration.IIoT | Industrial IoT gateway |
+### Modules Layer (`modules/`)
 
-### Industrial Layer (industrial/)
-| Project | Protocol |
-|---------|----------|
-| CoroMES.Industrial.Mqtt | MQTT |
-| CoroMES.Industrial.OpcUa | OPC-UA |
-| CoroMES.Industrial.EthernetIp | Ethernet/IP |
+These projects mainly exist as structural boundaries right now. Most business logic still lives in `Core`, `Infrastructure`, and `Api`.
+
+### Integration Layer (`integration/`)
+
+| Project | Current Reality |
+|---------|-----------------|
+| CoroMES.Integration.TrueCommerce | Planned boundary |
+| CoroMES.Integration.Cti | Active framework for file discovery, raw capture, parsing, validation, quarantine |
+| CoroMES.Integration.Upkeep | Planned boundary; API currently uses placeholders |
+| CoroMES.Integration.IIoT | Planned boundary |
+
+### Industrial Layer (`industrial/`)
+
+| Project | Current Reality |
+|---------|-----------------|
+| CoroMES.Industrial.i3X | Active and substantive |
+| CoroMES.Industrial.Mqtt | Present, limited implementation today |
+| CoroMES.Industrial.OpcUa | Present, limited implementation today |
+| CoroMES.Industrial.EthernetIp | Present, limited implementation today |
 
 ### Tests
-- CoroMES.UnitTests
-- CoroMES.IntegrationTests
 
-## Decisions Made
+- `CoroMES.UnitTests` contains real coverage for CTI ingestion and i3X client behavior
+- `CoroMES.IntegrationTests` exists but is still sparse
 
-1. **Solution Name:** CoroMES (homebrew MES)
-2. **Framework:** .NET 10 Minimal API
-3. **Database:** PostgreSQL
-4. **Architecture:** Clean Architecture + Modular
-5. **API Strategy:** Separate Core API + Reporting API
-6. **Industrial Protocols:** MQTT, OPC-UA, Ethernet/IP (out of box)
-7. **External Integrations:** TrueCommerce (EDI), Upkeep.com (CMMS)
+## What Is Working Today
 
-## What's Been Done
+- solution builds successfully
+- Minimal API host runs locally
+- health endpoint is available
+- foundational CRUD-like endpoints exist for work orders, equipment, materials, and operators
+- read endpoints exist for quality inspections and NCRs
+- prototype Upkeep endpoints and display endpoints exist
+- static admin and display pages are served
+- EF Core persistence is wired up
+- PostgreSQL migrations are checked in
+- optional i3X repository mode exists behind configuration
+- CTI ingestion primitives are implemented and unit-tested
 
-- [x] Created folder structure
-- [x] Created .NET solution (19 projects)
-- [x] Added project references (Clean Architecture)
-- [x] Added NuGet packages (EF Core, PostgreSQL, MQTTnet, MediatR, Swagger)
-- [x] Created Core entities (WorkOrder, Equipment, Material, Operator, Quality)
-- [x] Created ApplicationDbContext with EF Core
-- [x] Created API endpoints (WorkOrders, Equipment, Materials, Operators, Quality, Upkeep, Displays)
-- [x] Added Equipment fields: PartsPerMinute, SqFtPerDay, CycleTimeSeconds, Protocol, UpkeepAssetId
-- [x] Created Docker support (Dockerfile, docker-compose.yml)
-- [x] Created Admin web interface (web/admin/index.html)
-- [x] Created Shop Floor Displays (web/displays/viewer.html)
-- [x] Created Display Builder (web/displays/builder.html)
-- [x] Created documentation
-- [x] Added CTI/EPS research and coding-agent brief (`docs/CTI_RESEARCH_BRIEF.md`) and linked it from the docs index
-- [x] Created reusable Codex skill `$welch-cti-connector` at `C:\Users\soperbp\.codex\skills\welch-cti-connector`
-- [x] Backed up `$welch-cti-connector` skill in the repo under `docs/skills/welch-cti-connector`
-- [x] Started CTI connector framework as .NET project `integration/CoroMES.Integration.Cti`
+## Important Limitations
 
-## Admin Interface Features
+- no Blazor front end yet
+- no reporting API implementation despite the project and older docs
+- no industrial API surface despite earlier documentation
+- no authentication or authorization layer
+- many integrations are planned boundaries rather than complete implementations
+- some prototype behaviors are still hard-coded or placeholder-based
+- several memory and doc files had drifted from the code before this update
 
-- Password-protected access
-- Equipment management (add, edit, delete)
-- Auto-detect protocol (MQTT, OPC-UA, Ethernet/IP)
-- Production capabilities (PPM, Sq Ft/Day, Cycle Time)
-- Upkeep asset linking
-- Protocol configuration
+## What Was Recently Advanced
 
-## Shop Floor Display Features
+- i3X repository integration
+- CTI/EPS research brief and reusable skill backup
+- CTI ingestion project with file discovery, capture, parser, validator, and pipeline
+- security audit documentation and helper script additions in the working tree
 
-- 16:9 aspect ratio displays
-- Auto-refreshing (configurable interval)
-- Multiple display types: OEE, Production, Quality, Equipment
-- Assign equipment to displays
-- Fullscreen mode (click or press F)
-- Real-time data visualization
+## Recommended Next Steps
 
-## Next Steps
-
-1. Run `docker compose up` to start full stack
-2. Create EF Core migrations
-3. Add auto-detect protocol service implementation
+1. turn the CTI ingestion framework into a runnable connector workflow or host
+2. collect real Welch CTI sample files and source-system inventory
+3. decide the main UI direction, with Blazor as the preferred Windows-oriented front end
+4. move business behavior out of the large API `Program.cs` into application services
+5. either implement or trim the planned reporting and industrial surfaces
+6. add meaningful integration tests for the API and persistence paths
 
 ## Key References
 
-- **EDI:** TrueCommerce (existing setup, connects via API/inbound files)
-- **CTI/EPS:** Use `$welch-cti-connector` and `docs/CTI_RESEARCH_BRIEF.md` for current Welch baseline and public CTI/ePS research before building the migration connector
-- **CMMS:** Upkeep.com API
-- **Industrial:** MQTT (sensors), OPC-UA (SCADA/Siemens), Ethernet/IP (Allen-Bradley)
-
-## Documentation
-
-- Main docs: `./docs/`
-- Memory: `./memory/`
-- Changelog: `./changelog/`
+- `docs/CTI_RESEARCH_BRIEF.md`
+- `docs/INTEGRATIONS.md`
+- `docs/API.md`
+- `docs/ARCHITECTURE.md`
+- `memory/LONG_TERM_GOALS.md`
+- `memory/DECISIONS.md`

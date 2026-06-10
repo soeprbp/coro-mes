@@ -1,58 +1,32 @@
 # CoroMES Documentation Index
 
-Welcome to the CoroMES documentation. Use this index to navigate the system.
+Welcome to the CoroMES documentation. This index reflects the repository as it exists today, including areas that are implemented, prototyped, and still planned.
 
-## Getting Started
+## Start Here
 
-- [Installation](./SETUP.md) - How to set up the development environment
-- [Configuration](./CONFIG.md) - Configuration options and environment variables
-- [Quick Start](./QUICKSTART.md) - Get up and running quickly
+- [Architecture](./ARCHITECTURE.md) - what is implemented today versus planned structure
+- [API](./API.md) - current Minimal API surface and notable gaps
+- [Integrations](./INTEGRATIONS.md) - CTI framework, Upkeep placeholders, and planned external boundaries
+- [Industrial Protocols](./INDUSTRIAL_PROTOCOLS.md) - protocol direction and configuration guidance
+- [Development Guide](./DEVELOPMENT.md) - build, run, and test workflow
 
-## Architecture
+## Current Project Context
 
-- [Architecture Overview](./ARCHITECTURE.md) - System architecture and design
-- [Clean Architecture](./CLEAN_ARCHITECTURE.md) - Layer organization and patterns
-- [Project Structure](./STRUCTURE.md) - Folder and file organization
+- [Project State](../memory/PROJECT_STATE.md) - current implementation status and active themes
+- [Current Tasks](../memory/CURRENT_TASKS.md) - near-term work and priorities
+- [Architectural Decisions](../memory/DECISIONS.md) - accepted design decisions
+- [Long-Term Goals](../memory/LONG_TERM_GOALS.md) - modernization target state
+- [API Version History](../memory/API_VERSION_HISTORY.md) - version planning notes
 
-## APIs
-
-- [Core API](./API.md) - Main REST API endpoints (CRUD operations)
-- [Reporting API](./REPORTING_API.md) - Analytics and reporting for BI tools
-- [API Versioning](./API_VERSIONING.md) - Version strategy and compatibility
-
-## Integrations
+## Integrations and Research
 
 - [Integrations Overview](./INTEGRATIONS.md)
-- [CTI / EPS Research Brief](./CTI_RESEARCH_BRIEF.md) - CTI/EPS public research and CoroMES connector agent guidance
+- [CTI / EPS Research Brief](./CTI_RESEARCH_BRIEF.md) - Welch-specific CTI/EPS migration baseline
+- [Security Advisor](./SECURITY_ADVISOR.md) - repeatable audit checklist and runbook
 - [Welch CTI Connector Skill Backup](./skills/welch-cti-connector/SKILL.md) - repo backup of the reusable Codex skill
-- [TrueCommerce EDI](./INTEGRATIONS.md#trucommerce) - EDI integration
-- [Upkeep.com CMMS](./INTEGRATIONS.md#upkeep) - Maintenance system integration
 
-## Industrial Protocols
+## Notes on Missing Docs
 
-- [Industrial Protocols Overview](./INDUSTRIAL_PROTOCOLS.md)
-- [MQTT](./INDUSTRIAL_PROTOCOLS.md#mqtt) - MQTT protocol handler
-- [OPC-UA](./INDUSTRIAL_PROTOCOLS.md#opcua) - OPC-UA client
-- [Ethernet/IP](./INDUSTRIAL_PROTOCOLS.md#ethernetip) - Ethernet/IP for AB PLCs
+Some earlier docs referenced files such as `SETUP.md`, `CONFIG.md`, `QUICKSTART.md`, `MODULES.md`, `REPORTING_API.md`, `API_VERSIONING.md`, `CLEAN_ARCHITECTURE.md`, `STRUCTURE.md`, `CONTRIBUTING.md`, `TESTING.md`, `DEPLOYMENT.md`, and `CONFIG_REFERENCE.md`.
 
-## Modules
-
-- [Modules Overview](./MODULES.md)
-- [Production](./MODULES.md#production) - Work orders and operations
-- [Quality](./MODULES.md#quality) - Inspections and NCR
-- [Inventory](./MODULES.md#inventory) - Materials and BOM
-- [Equipment](./MODULES.md#equipment) - Machines and maintenance
-- [Workforce](./MODULES.md#workforce) - Shifts and labor
-
-## Development
-
-- [Development Guide](./DEVELOPMENT.md)
-- [Contributing](./CONTRIBUTING.md)
-- [Testing](./TESTING.md)
-- [Deployment](./DEPLOYMENT.md)
-
-## Reference
-
-- [Changelog](../CHANGELOG.md) - Version history
-- [Memory Files](../memory/) - Project state and decisions
-- [Configuration Reference](./CONFIG_REFERENCE.md)
+Those files are not currently present in the repo. Until they are created, use the docs and memory files listed above as the source of truth.

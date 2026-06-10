@@ -2,195 +2,161 @@
 
 ## Overview
 
-CoroMES follows **Clean Architecture** principles with a modular domain structure designed for Manufacturing Execution Systems (MES).
+CoroMES is structured like a Clean Architecture solution, but the implementation is still in a prototype-heavy stage. The boundaries are useful and mostly in place, though much of the live behavior still runs through a single Minimal API host.
 
-## High-Level Architecture
+## What Exists Today
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                              CLIENTS                                      │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌───────────────┐  │
-│  │  Shop Floor │  │  Reporting  │  │   External  │  │   Industrial  │
-│  │  Operators  │  │  (Power BI)  │  │   Systems   │  │   Devices     │
-│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └───────┬───────┘  │
-│         │                │                │                  │           │
-│         ▼                ▼                ▼                  ▼           │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌────────────┐  │
-│  │  Core API   │  │  Reporting   │  │ Integration  │  │ Industrial │  │
-│  │  /api/v1   │  │  /reporting  │  │    APIs      │  │  Protocols │  │
-│  └──────────────┘  └──────────────┘  └──────────────┘  └────────────┘  │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         APPLICATION LAYER                                │
-│  ┌──────────────────────────────────────────────────────────────────────┐ │
-│  │                    CoroMES.Application                               │ │
-│  │         Use Cases, DTOs, Services, Mappings                         │ │
-│  └──────────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          DOMAIN LAYER                                    │
-│  ┌──────────────────────────────────────────────────────────────────────┐ │
-│  │                      CoroMES.Core                                     │ │
-│  │    Entities, Enums, Interfaces, Base Classes, Events               │ │
-│  └──────────────────────────────────────────────────────────────────────┘ │
-│         │                     │                    │                     │
-│         ▼                     ▼                    ▼                     │
-│  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐                 │
-│  │  Production │     │   Quality   │     │   Inventory│                 │
-│  │   Module    │     │   Module    │     │   Module   │                 │
-│  └─────────────┘     └─────────────┘     └─────────────┘                 │
-│         │                     │                    │                     │
-│         ▼                     ▼                    ▼                     │
-│  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐                 │
-│  │  Equipment  │     │  Workforce  │     │ Integration │                 │
-│  │   Module    │     │   Module    │     │   Modules   │                 │
-│  └─────────────┘     └─────────────┘     └─────────────┘                 │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                      INFRASTRUCTURE LAYER                                │
-│  ┌──────────────────────────────────────────────────────────────────────┐ │
-│  │                   CoroMES.Infrastructure                              │ │
-│  │     EF Core, PostgreSQL, External API Clients, File Handlers        │ │
-│  └──────────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           DATA LAYER                                     │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌───────────────┐  │
-│  │ PostgreSQL  │  │   MQTT      │  │   OPC-UA    │  │   Ethernet/IP │  │
-│  │  Database   │  │   Broker    │  │   Server    │  │    Devices    │  │
-│  └─────────────┘  └─────────────┘  └─────────────┘  └───────────────┘  │
-└─────────────────────────────────────────────────────────────────────────┘
+### Active runtime
+
+- `CoroMES.Api` is the primary runnable application
+- `CoroMES.Infrastructure` contains the EF Core context, repository implementations, and i3X-backed repository adapters
+- `CoroMES.Core` contains the real domain entities, enums, and repository interfaces
+- `integration/CoroMES.Integration.Cti` is an active ingestion framework for legacy CTI/EPS files
+- `industrial/CoroMES.Industrial.i3X` is an active i3X client, model, and translation layer
+- `web/admin` and `web/displays` are static HTML/JS prototype UIs served by the API host
+
+### Planned or mostly skeletal areas
+
+- `CoroMES.Application` exists but does not yet contain the full application-service or CQRS layer described in earlier docs
+- `CoroMES.Reporting` exists as a project boundary, but reporting endpoints are not implemented
+- most `modules/*` projects are structural boundaries rather than code-heavy module implementations
+- `Integration.TrueCommerce`, `Integration.Upkeep`, `Integration.IIoT`, `Industrial.Mqtt`, `Industrial.OpcUa`, and `Industrial.EthernetIp` are mostly placeholders or future boundaries
+
+## Current High-Level Shape
+
+```text
+Clients
+  |- Static admin UI
+  |- Static display UI
+  |- External callers
+  |
+  v
+CoroMES.Api (Minimal API host)
+  |- EF Core repository mode
+  |- optional i3X repository mode
+  |- static file hosting for /admin and /displays
+  |
+  v
+CoroMES.Core + CoroMES.Infrastructure
+  |- domain entities
+  |- repository interfaces
+  |- ApplicationDbContext
+  |- EF repositories
+  |- i3X repository adapters
+  |
+  +--> CTI ingestion framework
+  +--> future external integrations
+  +--> future industrial protocol services
 ```
 
 ## Layer Responsibilities
 
 ### API Layer
-- **CoroMES.Api**: Minimal API endpoints, request/response handling
-- **CoroMES.Reporting**: Aggregated data endpoints for BI tools
 
-### Application Layer
-- **CoroMES.Application**: Business logic orchestration
-  - Use cases (CQRS pattern)
-  - DTOs (Data Transfer Objects)
-  - Service interfaces
-  - Mapping profiles
+- **`CoroMES.Api`**
+  - application startup
+  - database provider selection
+  - repository registration
+  - HTTP endpoints
+  - static file hosting
+
+Today, many responsibilities that would eventually move into an application layer still live here.
 
 ### Domain Layer
-- **CoroMES.Core**: Domain model
-  - Entities (WorkOrder, Equipment, Material, Operator)
-  - Value objects
-  - Enums (WorkOrderStatus, EquipmentStatus)
-  - Interfaces (IRepository, IService)
-  - Domain events
 
-### Modules
-- **Production**: Work orders, operations, scheduling
-- **Quality**: Inspections, NCR, traceability
-- **Inventory**: Materials, BOM, movements
-- **Equipment**: Machines, maintenance, status
-- **Workforce**: Shifts, labor, operators
+- **`CoroMES.Core`**
+  - base entities
+  - production, equipment, inventory, workforce, and quality entities
+  - enums
+  - repository interfaces
 
-### Integration Layer
-- **TrueCommerce**: EDI parsing (X12 850/810)
-- **Upkeep**: CMMS API integration
-- **IIoT**: Industrial IoT gateway
+This is the most complete and stable architectural layer in the repo.
 
 ### Infrastructure Layer
-- **CoroMES.Infrastructure**: External concerns
-  - Entity Framework Core
-  - PostgreSQL provider
-  - HTTP clients for external APIs
-  - File system handlers
 
-### Industrial Layer
-- **Mqtt**: MQTTnet client/broker
-- **OpcUa**: OPC Foundation SDK
-- **EthernetIp**: Ethernet/IP for AB PLCs
+- **`CoroMES.Infrastructure`**
+  - EF Core `ApplicationDbContext`
+  - migrations
+  - generic and specialized repositories
+  - i3X-backed repository adapters
 
-## Design Patterns
+Infrastructure currently carries a large share of the practical behavior.
 
-| Pattern | Usage |
-|---------|-------|
-| **Repository** | Data access abstraction |
-| **Unit of Work** | Transaction management |
-| **CQRS** | Command/Query separation in Application layer |
-| **Mediator** | Request/handler pipeline |
-| **Factory** | Entity creation |
-| **Dependency Injection** | All layers use DI |
+### CTI Migration Layer
 
-## API Structure
+- **`CoroMES.Integration.Cti`**
+  - file discovery
+  - raw file capture
+  - conservative parsing
+  - validation
+  - quarantine handling
 
-### Core API (`/api/v1`)
-```
-/api/v1/workorders
-/api/v1/workorders/{id}
-/api/v1/equipment
-/api/v1/inventory
-/api/v1/quality
-/api/v1/workforce
-```
+This connector is intentionally file-first and read-only toward CTI/Amtech production systems.
 
-### Reporting API (`/reporting/v1`)
-```
-/reporting/v1/oee
-/reporting/v1/production/daily
-/reporting/v1/production/by-line
-/reporting/v1/quality/inspections
-/reporting/v1/equipment/downtime
-/reporting/v1/inventory/current
-/reporting/v1/labor/hours
-```
+### i3X Layer
 
-### Industrial API (`/industrial/v1`)
-```
-/industrial/v1/mqtt/publish
-/industrial/v1/mqtt/subscribe
-/industrial/v1/opcua/browse
-/industrial/v1/opcua/read
-/industrial/v1/opcua/write
-/industrial/v1/ethernetip/read
-/industrial/v1/ethernetip/write
-```
+- **`CoroMES.Industrial.i3X`**
+  - HTTP client for i3X servers
+  - object and value models
+  - translator between CoroMES entities and i3X semantics
 
-## Data Flow
+This is one of the more advanced parts of the repository, though some mappings still reuse object types and need refinement.
 
-```
-User Action → API Controller → Use Case → Repository → Database
-                    ↓
-              Domain Entity
-                    ↓
-            Domain Event (optional)
-                    ↓
-           Integration Handlers
-                    ↓
-         External Systems (EDI, CMMS)
-```
+## Current Data Modes
 
-## Configuration
+### Default local mode
 
-Configuration is managed through `config/settings.yaml` with support for:
-- Database connection
-- API settings
-- Integration credentials
-- Industrial protocol settings
+- SQLite
+- configured in `src/CoroMES.Api/appsettings.json`
+- used for local development and quick startup
 
-Environment variables override YAML config (for secrets):
-- `UPKEEP_API_KEY`
-- `TRUECOMMERCE_PASSWORD`
-- etc.
+### Production-intended mode
 
-## Deployment Options
+- PostgreSQL
+- supported through EF Core and Docker configuration
+- checked-in migrations target PostgreSQL
 
-1. **Docker Compose**: PostgreSQL + MQTT + Application
-2. **Kubernetes**: Microservices or monolith
-3. **Traditional**: IIS, Kestrel directly
+### Optional external data-fabric mode
 
-See [DEPLOYMENT.md](./DEVELOPMENT.md) for details.
+- i3X
+- enabled via configuration
+- swaps EF-backed repositories for i3X-backed repositories
+
+## UI Architecture Today
+
+The current UI is not Blazor yet.
+
+- `web/admin/index.html` is a static admin prototype
+- `web/displays/viewer.html` is a static display viewer
+- `web/displays/builder.html` is a static display configuration prototype
+
+These pages are useful for proving workflows, but they are not yet integrated into a component-based .NET UI architecture.
+
+## Key Gaps Between Structure and Reality
+
+The repo was laid out for a larger future platform, but only part of that platform is implemented today.
+
+Notable gaps:
+
+- no reporting API implementation
+- no industrial protocol API implementation
+- no Blazor or other first-class .NET front end
+- no completed application-service or CQRS layer
+- placeholder Upkeep behavior in the API
+- incomplete integration tests
+
+## Near-Term Architectural Direction
+
+The cleanest next steps are:
+
+1. keep `CoroMES.Api` as the current host
+2. turn `CoroMES.Application` into a real service/use-case layer
+3. make CTI ingestion runnable as an actual hosted connector workflow
+4. decide whether the primary front end becomes Blazor
+5. either implement or trim the planned reporting and industrial surfaces
+
+## Deployment Notes
+
+Current local development is centered on running the Minimal API directly and optionally bringing up Docker-backed infrastructure for PostgreSQL and MQTT.
+
+The repo is not yet in a state where the documented "full platform" deployment shape exists end to end.

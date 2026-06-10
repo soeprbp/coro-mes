@@ -273,4 +273,4 @@ dotnet publish src/CoroMES.Api -c Release -o ./publish
 2. Make changes and commit: `git commit -m "feat: add feature"`
 3. Push and create PR: `git push origin feature/your-feature`
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for full guidelines.
+Use the repo memory files and the active docs index as the current contribution guide until a dedicated `CONTRIBUTING.md` is added.
