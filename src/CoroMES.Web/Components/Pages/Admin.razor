@@ -6,7 +6,7 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = "AdminOnly")]
 @inject IEquipmentRepository EquipmentRepository
-@inject IUpkeepAssetCatalog UpkeepAssetCatalog
+@inject IUpkeepIntegration UpkeepIntegration
 @inject IAuditLogService AuditLog
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
@@ -371,7 +371,7 @@
     protected override async Task OnInitializedAsync()
     {
         section = ResolveSection();
-        upkeepAssets = UpkeepAssetCatalog.GetAssets().ToList();
+        upkeepAssets = (await UpkeepIntegration.GetAssetsAsync()).ToList();
         await LoadEquipment();
     }
 
@@ -566,10 +566,21 @@
         await LoadEquipment();
     }
 
-    private void SyncUpkeep()
+    private async Task SyncUpkeep()
     {
-        var linked = equipment.Count(item => item.UpkeepAssetId.HasValue);
-        syncStatus = $"Last sync: {DateTime.Now:g}. Linked assets: {linked}.";
+        var linkedEquipment = equipment
+            .Where(item => item.UpkeepAssetId.HasValue)
+            .Select(item => new UpkeepEquipmentLink(
+                item.Id,
+                item.Code,
+                item.Name,
+                item.UpkeepAssetId!.Value,
+                item.Status.ToString(),
+                item.Location))
+            .ToList();
+
+        var result = await UpkeepIntegration.SyncEquipmentAsync(new UpkeepSyncRequest(linkedEquipment));
+        syncStatus = $"Last sync: {result.TimestampUtc.ToLocalTime():g}. Mode: {result.Mode}. Linked assets: {result.Synced}. {result.Message}";
     }
 
     private void SaveProtocolSettings()

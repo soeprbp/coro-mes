@@ -245,7 +245,7 @@ The official CESMII i3X baseline is tracked in `docs/I3X_STANDARDS_TRACKING.md`.
 - MES-Vision i3X default port is currently `5002` in `config/config.yaml`, while some docs mention `5001`.
 - Official i3X 1.0 and MES-Vision object filtering use `typeElementId`; the current CoroMES i3X client sends `typeId`.
 - MES-Vision history requires `startTime` and `endTime`; CoroMES should always provide both.
-- MES-Vision implements subscription sync as `POST /v1/subscriptions/sync` with `subscriptionId` in the body, while the current CoroMES client expects `POST /v1/subscriptions/{id}/sync`.
+- MES-Vision implements subscription sync as `POST /v1/subscriptions/sync` with `subscriptionId` in the body. The CoroMES i3X client now uses this body-oriented 1.0 route shape.
 - Official i3X 1.0 and MES-Vision implement bulk value writes at `PUT /v1/objects/value`; current CoroMES write code uses per-object `PUT /v1/objects/{id}/value`.
 - Official i3X 1.0 requires subscription `clientId` scoping and body-oriented subscription routes; CoroMES does not yet model that.
 - MES-Vision SSE stream is implemented, but CoroMES does not yet have a streaming i3X client method. Official i3X 1.0 treats streaming as optional, so polling/sync stays the baseline.

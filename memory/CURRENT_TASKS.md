@@ -44,10 +44,10 @@
 - [x] Persist display builder configurations and load them through the Blazor viewer
 - [x] Expand audit logging to display definitions and UpKeep sync/downtime placeholders
 - [x] Add admin settings scaffold for integration endpoints and feature flags
+- [x] Move UpKeep asset matching behind a dedicated mock/disabled/live integration boundary
 - [ ] Replace static admin pages with Blazor routes while preserving `/admin` compatibility
 - [ ] Replace static display viewer and builder pages with Blazor routes while preserving `/displays/viewer.html` and `/displays/builder.html` redirects
 - [ ] Keep Blazor screens aligned with current API route parity in `docs/API.md`
-- [ ] Move Upkeep placeholder asset matching behind a dedicated integration boundary
 
 ### 5. Product Surface Expansion
 
@@ -56,9 +56,9 @@
 - [ ] Add MES-Vision source registry, telemetry readings, and event history storage
 - [ ] Add admin mapping for MES-Vision cameras/zones to CoroMES equipment
 - [ ] Add dashboard/reporting widgets for vision-derived runtime, idle time, camera health, and zone activity
-- [ ] Replace placeholder Upkeep behavior with a real integration strategy
+- [ ] Replace guarded UpKeep live-write stubs with confirmed live API calls after credentials/API contract are available
 - [ ] Replace temporary admin access-code gate with the chosen enterprise identity model
-- [ ] Expand audit logging beyond equipment, display, and UpKeep placeholder mutations
+- [ ] Expand audit logging beyond equipment, display, and UpKeep boundary mutations
 - [ ] Expand inventory, workforce, and quality write workflows
 
 ### 6. Testing
@@ -84,8 +84,8 @@
 1. Collect CTI source-system details and sample files
 2. Turn the CTI framework into a runnable connector host
 3. Keep the Blazor auth/audit/display integration tests green
-4. Move UpKeep placeholder asset matching behind a dedicated mock/live integration boundary
-5. Persist admin integration settings and feature flags with secret-safe storage
-6. Build the first read-only MES-Vision collector using i3X discovery, value polling, and history polling
-7. Add MES-Vision compatibility coverage against the running i3X endpoint once the target update settles
+4. Persist admin integration settings and feature flags with secret-safe storage
+5. Build the first read-only MES-Vision collector using i3X discovery, value polling, and history polling
+6. Add MES-Vision compatibility coverage against the running i3X endpoint once the target update settles
+7. Confirm UpKeep live API details and replace guarded live-write stubs
 8. Start either implementing or pruning the reporting and industrial surfaces promised by older docs

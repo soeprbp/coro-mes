@@ -1,3 +1,4 @@
+using CoroMES.Integration.Upkeep;
 using CoroMES.Infrastructure.Data;
 using CoroMES.Web.Services;
 using Microsoft.EntityFrameworkCore;
@@ -8,41 +9,62 @@ public static class UpkeepEndpoints
 {
     public static RouteGroupBuilder MapUpkeepEndpoints(this RouteGroupBuilder api)
     {
-        api.MapGet("/integration/upkeep/assets", (IUpkeepAssetCatalog assets) => Results.Ok(assets.GetAssets()))
+        api.MapGet("/integration/upkeep/assets", async (IUpkeepIntegration upkeep, CancellationToken cancellationToken) =>
+        {
+            var assets = await upkeep.GetAssetsAsync(cancellationToken);
+            return Results.Ok(new
+            {
+                mode = upkeep.Mode,
+                assets
+            });
+        })
         .WithName("GetUpkeepAssets")
         .WithTags("Upkeep");
 
-        api.MapPost("/integration/upkeep/sync", async (ApplicationDbContext db, IAuditLogService auditLog, HttpContext context) =>
+        api.MapPost("/integration/upkeep/sync", async (ApplicationDbContext db, IUpkeepIntegration upkeep, IAuditLogService auditLog, HttpContext context, CancellationToken cancellationToken) =>
         {
             var equipmentWithUpkeep = await db.Equipment
                 .Where(e => e.UpkeepAssetId != null)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
+
+            var request = new UpkeepSyncRequest(equipmentWithUpkeep
+                .Select(item => new UpkeepEquipmentLink(
+                    item.Id,
+                    item.Code,
+                    item.Name,
+                    item.UpkeepAssetId!.Value,
+                    item.Status.ToString(),
+                    item.Location))
+                .ToList());
+
+            var result = await upkeep.SyncEquipmentAsync(request, cancellationToken);
 
             await auditLog.RecordAsync(context, new AuditLogEntry(
                 "Sync",
                 "Upkeep",
                 null,
-                $"Synced {equipmentWithUpkeep.Count} equipment records linked to UpKeep assets."));
+                $"{result.Message} Mode={result.Mode}; Synced={result.Synced}",
+                Succeeded: result.Success));
 
-            return Results.Ok(new
-            {
-                synced = equipmentWithUpkeep.Count,
-                timestamp = DateTime.UtcNow,
-                message = "Equipment status synced to Upkeep"
-            });
+            return result.Success ? Results.Ok(result) : Results.BadRequest(result);
         })
         .WithName("SyncUpkeep")
         .WithTags("Upkeep");
 
-        api.MapPost("/integration/upkeep/downtime", async (IAuditLogService auditLog, HttpContext context) =>
+        api.MapPost("/integration/upkeep/downtime", async (UpkeepDowntimeRequest? request, IUpkeepIntegration upkeep, IAuditLogService auditLog, HttpContext context, CancellationToken cancellationToken) =>
         {
+            var result = await upkeep.LogDowntimeAsync(
+                request ?? new UpkeepDowntimeRequest(null, null, null, DateTime.UtcNow),
+                cancellationToken);
+
             await auditLog.RecordAsync(context, new AuditLogEntry(
                 "Downtime",
                 "Upkeep",
                 null,
-                "Downtime logged to Upkeep."));
+                $"{result.Message} Mode={result.Mode}",
+                Succeeded: result.Success));
 
-            return Results.Ok(new { success = true, message = "Downtime logged to Upkeep" });
+            return result.Success ? Results.Ok(result) : Results.BadRequest(result);
         })
         .WithName("LogDowntime")
         .WithTags("Upkeep");

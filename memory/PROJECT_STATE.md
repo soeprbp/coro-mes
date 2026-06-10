@@ -22,6 +22,7 @@ CoroMES is no longer just a scaffold. The repository now contains:
 - a forward Blazor host for admin and shop-floor display workflows
 - modular Blazor-host endpoint files for API parity work
 - persisted display definitions used by the builder and viewer
+- UpKeep asset matching moved into a mock/disabled/live integration boundary
 - static admin and shop-floor display prototype URLs that need redirects or compatibility shims during migration
 - an i3X client and repository adapter layer
 - a CESMII i3X 1.0 standards-tracking note with exact upstream branch/tag references
@@ -65,7 +66,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 |---------|-----------------|
 | CoroMES.Integration.TrueCommerce | Planned boundary |
 | CoroMES.Integration.Cti | Active framework for file discovery, raw capture, parsing, validation, quarantine |
-| CoroMES.Integration.Upkeep | Planned boundary; API currently uses placeholders |
+| CoroMES.Integration.Upkeep | Active mock/disabled/live boundary for UpKeep asset lookup, sync, and downtime adapter work |
 | CoroMES.Integration.IIoT | Planned boundary; likely home for the MES-Vision collector or shared telemetry ingestion patterns |
 
 ### Industrial Layer (`industrial/`)
@@ -80,7 +81,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 ### Tests
 
 - `CoroMES.UnitTests` contains real coverage for CTI ingestion and i3X client behavior
-- `CoroMES.IntegrationTests` now includes Blazor host smoke coverage for auth gates, equipment audit logging, display persistence, and UpKeep sync audit logging
+- `CoroMES.IntegrationTests` now includes Blazor host smoke coverage for auth gates, equipment audit logging, display persistence, UpKeep asset boundary mode, and UpKeep sync audit logging
 
 ## What Is Working Today
 
@@ -89,7 +90,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - health endpoint is available
 - foundational CRUD-like endpoints exist for work orders, equipment, materials, and operators
 - read endpoints exist for quality inspections and NCRs
-- prototype Upkeep endpoints and display endpoints exist
+- UpKeep endpoints call the `CoroMES.Integration.Upkeep` boundary
 - `CoroMES.Web` is the forward Blazor host
 - `CoroMES.Web` maps API parity through endpoint modules under `src/CoroMES.Web/Endpoints`
 - display definitions persist through `DisplayDefinition` and load in the Blazor viewer by slug
@@ -103,7 +104,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - CTI ingestion primitives are implemented and unit-tested
 - first Blazor admin auth gate protects `/admin`, `/displays/builder`, and `/api/v1/*`
 - first-pass audit logging records equipment create/update/delete, display definition create/update, and UpKeep sync/downtime actions
-- first Blazor integration tests exercise public versus protected route behavior, equipment audit writes, display persistence, and UpKeep sync audit writes
+- first Blazor integration tests exercise public versus protected route behavior, equipment audit writes, display persistence, UpKeep asset boundary mode, and UpKeep sync audit writes
 
 ## Important Limitations
 
@@ -113,8 +114,8 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - no persisted vision telemetry model yet despite MES-Vision being identified as the first test endpoint
 - the core i3X client is aligned to the main CESMII 1.0 route shapes, but the MES-Vision collector service and live endpoint compatibility tests still need to be built
 - first auth gate is cookie-based and suitable for migration/local control, not final enterprise identity
-- audit logging covers equipment, display definitions, and first-pass UpKeep placeholder actions so far
-- many integrations are planned boundaries rather than complete implementations
+- audit logging covers equipment, display definitions, and first-pass UpKeep boundary actions so far
+- UpKeep now has a concrete integration boundary, but live writes are still guarded pending final API details and credentials
 - some prototype behaviors are still hard-coded or placeholder-based
 - several memory and doc files had drifted from the code before this update
 
@@ -136,14 +137,15 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - display builder configurations now persist through EF Core and load in the viewer by slug
 - admin settings now has a scaffold for integration endpoints and feature flags, but persistence and secret storage are still pending
 - audit coverage expanded to display definitions and UpKeep sync/downtime placeholder actions
+- UpKeep asset matching moved out of `CoroMES.Web` and into `CoroMES.Integration.Upkeep` with mock, disabled, and guarded live modes
 
 ## Recommended Next Steps
 
 1. keep the Blazor auth/audit integration smoke suite green while expanding the host
-2. move UpKeep placeholder asset matching behind a dedicated mock/live integration boundary
-3. persist admin integration settings and feature flags with secret-safe storage
-4. build a read-only MES-Vision collector using i3X discovery, current values, and event history
-5. add MES-Vision compatibility tests against the running i3X endpoint once the target-side update settles
+2. persist admin integration settings and feature flags with secret-safe storage
+3. build a read-only MES-Vision collector using i3X discovery, current values, and event history
+4. add MES-Vision compatibility tests against the running i3X endpoint once the target-side update settles
+5. confirm UpKeep live API details and replace guarded live-write stubs
 6. replace the temporary admin access-code gate with the chosen enterprise identity model
 7. turn the CTI ingestion framework into a runnable connector workflow or host
 8. collect real Welch CTI sample files and source-system inventory

@@ -124,6 +124,20 @@ For API parity work in the Blazor host:
 - Update `docs/API.md`, `docs/BLAZOR_MIGRATION.md`, and memory files in the same change.
 - Keep `dotnet test CoroMES.sln` green before handing the app back.
 
+### UpKeep Integration Modes
+
+The Blazor host registers `CoroMES.Integration.Upkeep` through `AddUpkeepIntegration`.
+
+```powershell
+$env:Upkeep__Mode = "mock"      # default local mode
+$env:Upkeep__Mode = "disabled"  # no assets, reject sync/downtime
+$env:Upkeep__Mode = "live"      # requires BaseUrl and ApiKey
+$env:Upkeep__BaseUrl = "https://api.onupkeep.com/"
+$env:Upkeep__ApiKey = "<set-a-real-local-secret>"
+```
+
+Do not enter UpKeep credentials in the Blazor settings scaffold. Use environment variables, user secrets, or deployment configuration.
+
 ### 1. Create Entity (Core)
 
 ```csharp

@@ -15,6 +15,7 @@ CoroMES is structured like a Clean Architecture solution, but the implementation
 - `CoroMES.Web/Endpoints` contains the forward host route modules for auth, compatibility, audit, MES resources, integrations, and displays
 - `CoroMES.Web/Startup` contains Blazor-host startup/database safety extensions
 - `integration/CoroMES.Integration.Cti` is an active ingestion framework for legacy CTI/EPS files
+- `integration/CoroMES.Integration.Upkeep` is an active mock/disabled/live boundary for UpKeep asset lookup, sync, and downtime adapter work
 - `industrial/CoroMES.Industrial.i3X` is an active i3X client, model, and translation layer
 - old static URLs under `web/admin` and `web/displays` are migration compatibility paths that should redirect to Blazor routes or remain shimmed until replaced
 
@@ -23,7 +24,7 @@ CoroMES is structured like a Clean Architecture solution, but the implementation
 - `CoroMES.Application` exists but does not yet contain the full application-service or CQRS layer described in earlier docs
 - `CoroMES.Reporting` exists as a project boundary, but reporting endpoints are not implemented
 - most `modules/*` projects are structural boundaries rather than code-heavy module implementations
-- `Integration.TrueCommerce`, `Integration.Upkeep`, `Integration.IIoT`, `Industrial.Mqtt`, `Industrial.OpcUa`, and `Industrial.EthernetIp` are mostly placeholders or future boundaries
+- `Integration.TrueCommerce`, `Integration.IIoT`, `Industrial.Mqtt`, `Industrial.OpcUa`, and `Industrial.EthernetIp` are mostly placeholders or future boundaries
 
 ## Current High-Level Shape
 
@@ -56,6 +57,7 @@ CoroMES.Core + CoroMES.Infrastructure
   |- i3X repository adapters
   |
   +--> CTI ingestion framework
+  +--> UpKeep integration boundary
   +--> future external integrations
   +--> future industrial protocol services
 ```
@@ -165,7 +167,7 @@ Notable gaps:
 - no industrial protocol API implementation
 - Blazor screens are newly established as the forward UI path and still need build-out, but display builder/viewer definitions are now persisted
 - no completed application-service or CQRS layer
-- placeholder Upkeep behavior in the API
+- live UpKeep write behavior is still blocked pending final API contract and credential handling
 - incomplete integration tests
 
 ## Near-Term Architectural Direction

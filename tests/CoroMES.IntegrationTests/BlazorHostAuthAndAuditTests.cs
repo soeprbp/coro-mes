@@ -150,8 +150,18 @@ public class BlazorHostAuthAndAuditTests
 
         await SignInAsync(client);
 
+        var assets = await client.GetFromJsonAsync<UpkeepAssetsDto>("/api/v1/integration/upkeep/assets", JsonOptions);
+        Assert.NotNull(assets);
+        Assert.Equal("mock", assets!.Mode);
+        Assert.Contains(assets.Assets, asset => asset.Id == 101 && asset.Name == "Corrugator Main Drive");
+
         var sync = await client.PostAsync("/api/v1/integration/upkeep/sync", null);
         Assert.Equal(HttpStatusCode.OK, sync.StatusCode);
+
+        var syncResult = await sync.Content.ReadFromJsonAsync<UpkeepSyncDto>(JsonOptions);
+        Assert.NotNull(syncResult);
+        Assert.True(syncResult!.Success);
+        Assert.Equal("mock", syncResult.Mode);
 
         var audit = await client.GetFromJsonAsync<AuditLogDto[]>("/api/v1/audit?entityName=Upkeep&take=10", JsonOptions);
         Assert.NotNull(audit);
@@ -184,6 +194,24 @@ public class BlazorHostAuthAndAuditTests
         public int RefreshSeconds { get; set; }
     }
 
+    private sealed class UpkeepAssetsDto
+    {
+        public string Mode { get; set; } = string.Empty;
+        public UpkeepAssetDto[] Assets { get; set; } = [];
+    }
+
+    private sealed class UpkeepAssetDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+
+    private sealed class UpkeepSyncDto
+    {
+        public bool Success { get; set; }
+        public string Mode { get; set; } = string.Empty;
+    }
+
     private sealed class CoroMesWebFactory : WebApplicationFactory<Program>
     {
         public const string AdminAccessCode = "test-admin";
@@ -200,7 +228,8 @@ public class BlazorHostAuthAndAuditTests
                     ["DatabaseProvider"] = "sqlite",
                     ["ConnectionStrings:DefaultConnection"] = $"Data Source={dbPath}",
                     ["Auth:AdminAccessCode"] = AdminAccessCode,
-                    ["i3x:enabled"] = "false"
+                    ["i3x:enabled"] = "false",
+                    ["Upkeep:Mode"] = "mock"
                 });
             });
         }

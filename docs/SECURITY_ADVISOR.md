@@ -27,7 +27,8 @@ For a stricter local gate:
 
 - High: the standalone `CoroMES.Api` host still needs the same auth gate or should remain unexposed while `CoroMES.Web` is the forward host.
 - Medium: the Blazor host has a first cookie-based admin gate, but it is not final enterprise identity. Replace access-code auth with the chosen identity provider before production use.
-- Medium: audit logging currently covers first-pass equipment mutations. Expand audit coverage to all work order, material, operator, Upkeep, and future write actions.
+- Medium: audit logging currently covers equipment, display definitions, and first-pass UpKeep actions. Expand audit coverage to all work order, material, operator, live integration, and future write actions.
+- Medium: live UpKeep mode requires API credentials and has guarded write stubs. Keep credentials in environment/user-secret/deployment configuration and confirm the live write contract before enabling writes.
 - Medium: development config uses wildcard hosts, sample database passwords, anonymous MQTT, and HTTP i3X defaults. Keep these local-only and require environment overrides for shared environments.
 - Medium: CTI raw/quarantine/archive payloads may contain customer, schedule, production, or order data. Keep payload directories out of Git and restrict filesystem permissions.
 

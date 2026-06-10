@@ -57,9 +57,9 @@ This is the first modularization step. The next extraction should move heavier b
 The team should move the Blazor fork forward in this order:
 
 1. Keep the auth and audit integration smoke suite green as a migration guardrail.
-2. Move the current UpKeep placeholder catalog behind an integration boundary with a clear mock/live mode.
-3. Align the i3X client to CESMII 1.0 route shapes before building the MES-Vision collector.
-4. Persist admin integration settings and feature flags with secret-safe storage.
+2. Persist admin integration settings and feature flags with secret-safe storage.
+3. Build the first read-only MES-Vision collector using the aligned i3X client.
+4. Add UpKeep live asset-read compatibility once credentials and API details are available.
 5. Start moving endpoint behavior into application services where workflows are no longer simple CRUD.
 
 This order keeps Jane's security surface reviewable while Wash and River expand the host without burying business behavior inside the startup file.
@@ -140,5 +140,5 @@ Suggested forward mappings:
 - Signed-in admin requests can reach `/admin/equipment` and `/api/v1/equipment`.
 - Equipment create/update/delete writes audit records.
 - Display definitions persist through `/api/v1/displays` and load in `/displays/viewer?id={slug}`.
-- UpKeep sync and downtime placeholder calls write audit records.
+- UpKeep asset lookup, sync, and downtime calls go through `CoroMES.Integration.Upkeep` and write audit records.
 - `/displays/viewer?id=preview&type=oee` remains reachable without admin sign-in.

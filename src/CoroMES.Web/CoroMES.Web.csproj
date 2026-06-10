@@ -5,6 +5,7 @@
     <ProjectReference Include="..\CoroMES.Infrastructure\CoroMES.Infrastructure.csproj" />
     <ProjectReference Include="..\CoroMES.Reporting\CoroMES.Reporting.csproj" />
     <ProjectReference Include="..\..\industrial\CoroMES.Industrial.i3X\CoroMES.Industrial.i3X.csproj" />
+    <ProjectReference Include="..\..\integration\CoroMES.Integration.Upkeep\CoroMES.Integration.Upkeep.csproj" />
   </ItemGroup>
 
   <ItemGroup>

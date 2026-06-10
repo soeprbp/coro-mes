@@ -6,7 +6,7 @@ Welcome to the CoroMES documentation. This index reflects the repository as it e
 
 - [Architecture](./ARCHITECTURE.md) - what is implemented today versus planned structure
 - [API](./API.md) - current Minimal API surface and notable gaps
-- [Integrations](./INTEGRATIONS.md) - CTI framework, Upkeep placeholders, and planned external boundaries
+- [Integrations](./INTEGRATIONS.md) - CTI framework, UpKeep boundary, and planned external integrations
 - [Industrial Protocols](./INDUSTRIAL_PROTOCOLS.md) - protocol direction and configuration guidance
 - [Development Guide](./DEVELOPMENT.md) - build, run, and test workflow
 

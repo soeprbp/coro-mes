@@ -18,7 +18,7 @@ As of June 2026, the repository is beyond initial scaffolding but not yet a comp
 
 - `src/CoroMES.Web` is the forward Blazor host for user-facing workflows
 - `src/CoroMES.Api` remains the backend API host and route contract source of truth
-- the API supports foundational endpoints for work orders, equipment, materials, operators, quality, Upkeep placeholders, and display configs
+- the API supports foundational endpoints for work orders, equipment, materials, operators, quality, UpKeep integration, and display configs
 - the Blazor host now maps API parity through focused endpoint modules instead of a large startup file
 - display builder definitions are persisted and loaded by the Blazor viewer
 - persistence currently defaults to SQLite for local development

@@ -105,7 +105,7 @@ Notes:
 - these are read-only list endpoints today
 - create/update inspection and NCR workflows are not implemented yet
 
-### Upkeep Integration Placeholders
+### Upkeep Integration
 
 ```text
 GET  /api/v1/integration/upkeep/assets
@@ -115,8 +115,12 @@ POST /api/v1/integration/upkeep/downtime
 
 Notes:
 
-- these endpoints are placeholders and prototype behavior
-- they do not yet call a live Upkeep API
+- these endpoints call the `CoroMES.Integration.Upkeep` boundary
+- default local mode is mock and returns the seeded UpKeep asset catalog used by the Blazor matching UI
+- disabled mode returns no assets and rejects sync/downtime requests
+- live mode is guarded behind `Upkeep:Mode=live`, `Upkeep:BaseUrl`, and `Upkeep:ApiKey`
+- live asset reads have an adapter slot, but live sync and downtime writes remain blocked until the final UpKeep write API contract is confirmed
+- sync and downtime calls write audit records with success/failure status
 
 ### Displays
 
