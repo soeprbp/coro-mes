@@ -5,6 +5,7 @@ using CoroMES.Infrastructure.Data;
 using CoroMES.Infrastructure.Repositories;
 using CoroMES.Infrastructure.Repositories.i3x;
 using CoroMES.Web.Components;
+using CoroMES.Web.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,7 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddHttpClient();
+builder.Services.AddSingleton<IUpkeepAssetCatalog, UpkeepAssetCatalog>();
 
 var dbProvider = builder.Configuration.GetValue<string>("DatabaseProvider") ?? "sqlite";
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -220,17 +221,7 @@ static void MapApiRoutes(WebApplication app)
     .WithName("DeleteEquipment")
     .WithTags("Equipment");
 
-    app.MapGet("/api/v1/integration/upkeep/assets", () =>
-    {
-        var assets = new[]
-        {
-            new { id = 101, name = "Corrugator Main Drive", type = "Equipment", location = "Building A" },
-            new { id = 102, name = "Bender Unit A1", type = "Equipment", location = "Building B" },
-            new { id = 103, name = "Conveyor Belt Line 1", type = "Equipment", location = "Building A" },
-            new { id = 104, name = "Temperature Sensor Array", type = "Sensor", location = "Building A" }
-        };
-        return Results.Ok(assets);
-    })
+    app.MapGet("/api/v1/integration/upkeep/assets", (IUpkeepAssetCatalog assets) => Results.Ok(assets.GetAssets()))
     .WithName("GetUpkeepAssets")
     .WithTags("Upkeep");
 

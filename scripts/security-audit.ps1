@@ -39,6 +39,22 @@ function Add-Finding {
     Write-Host "Finding: $Message"
 }
 
+function Get-RepoRelativePath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    $rootPath = $script:repoRoot.ProviderPath.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+    $fullPath = [System.IO.Path]::GetFullPath($Path)
+
+    if ($fullPath.StartsWith($rootPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $fullPath.Substring($rootPath.Length).TrimStart([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+    }
+
+    return $fullPath
+}
+
 Invoke-Step "Restore" { dotnet restore CoroMES.sln }
 
 if (-not $SkipBuild) {
@@ -56,28 +72,17 @@ if (-not $SkipTests) {
 
 Write-Host ""
 Write-Host "== NuGet vulnerability audit =="
-$projectFiles = Get-ChildItem -Recurse -Filter "*.csproj" |
-    Where-Object { $_.FullName -notmatch "\\(bin|obj)\\" } |
-    Sort-Object FullName
+$auditOutput = & dotnet list CoroMES.sln package --vulnerable --include-transitive 2>&1
+$auditText = $auditOutput -join [Environment]::NewLine
+Write-Host $auditText
 
-foreach ($projectFile in $projectFiles) {
-    $relativeProject = [System.IO.Path]::GetRelativePath($repoRoot, $projectFile.FullName)
-    Write-Host "-- $relativeProject"
-
-    $auditOutput = & dotnet list $projectFile.FullName package --vulnerable --include-transitive 2>&1
-    $auditText = $auditOutput -join [Environment]::NewLine
-    Write-Host $auditText
-
-    if ($LASTEXITCODE -ne 0) {
-        $failed = $true
-        Add-Finding "NuGet audit command failed for $relativeProject."
-        continue
-    }
-
-    if ($auditText -match "has the following vulnerable packages") {
-        $failed = $true
-        Add-Finding "Known vulnerable package reported for $relativeProject."
-    }
+if ($LASTEXITCODE -ne 0) {
+    $failed = $true
+    Add-Finding "NuGet audit command failed for CoroMES.sln."
+}
+elseif ($auditText -match "has the following vulnerable packages") {
+    $failed = $true
+    Add-Finding "Known vulnerable package reported for CoroMES.sln."
 }
 
 Write-Host ""
@@ -85,7 +90,7 @@ Write-Host "== Secret and unsafe-default heuristics =="
 $scanFiles = Get-ChildItem -Recurse -File |
     Where-Object {
         $_.FullName -notmatch "\\(\.git|bin|obj|TestResults|coverage|packages|node_modules)\\" -and
-        $_.Extension -notin @(".dll", ".exe", ".pdb", ".png", ".jpg", ".jpeg", ".gif", ".ico", ".db", ".sqlite", ".sqlite3")
+        $_.Extension -notin @(".dll", ".exe", ".pdb", ".png", ".jpg", ".jpeg", ".gif", ".ico", ".db", ".db-shm", ".db-wal", ".sqlite", ".sqlite-shm", ".sqlite-wal", ".sqlite3", ".sqlite3-shm", ".sqlite3-wal")
     }
 
 $patterns = @(
@@ -99,7 +104,7 @@ $patterns = @(
 )
 
 foreach ($file in $scanFiles) {
-    $relativePath = [System.IO.Path]::GetRelativePath($repoRoot, $file.FullName)
+    $relativePath = Get-RepoRelativePath $file.FullName
     $lineNumber = 0
 
     foreach ($line in [System.IO.File]::ReadLines($file.FullName)) {

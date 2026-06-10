@@ -4,9 +4,8 @@
 @page "/admin/protocols"
 @page "/admin/settings"
 @rendermode InteractiveServer
-@using System.Net.Http.Json
 @inject IEquipmentRepository EquipmentRepository
-@inject IHttpClientFactory HttpClientFactory
+@inject IUpkeepAssetCatalog UpkeepAssetCatalog
 @inject NavigationManager Navigation
 
 <div class="app-shell">
@@ -306,7 +305,7 @@
     protected override async Task OnInitializedAsync()
     {
         section = ResolveSection();
-        await LoadUpkeepAssets();
+        upkeepAssets = UpkeepAssetCatalog.GetAssets().ToList();
         await LoadEquipment();
     }
 
@@ -472,26 +471,6 @@
         await LoadEquipment();
     }
 
-    private async Task LoadUpkeepAssets()
-    {
-        try
-        {
-            var client = HttpClientFactory.CreateClient();
-            client.BaseAddress = new Uri(Navigation.BaseUri);
-            upkeepAssets = await client.GetFromJsonAsync<List<UpkeepAsset>>("api/v1/integration/upkeep/assets") ?? [];
-        }
-        catch
-        {
-            upkeepAssets =
-            [
-                new(101, "Corrugator Main Drive", "Equipment", "Building A"),
-                new(102, "Bender Unit A1", "Equipment", "Building B"),
-                new(103, "Conveyor Belt Line 1", "Equipment", "Building A"),
-                new(104, "Temperature Sensor Array", "Sensor", "Building A")
-            ];
-        }
-    }
-
     private async Task DeleteEquipment(int id)
     {
         await EquipmentRepository.DeleteAsync(id);
@@ -508,8 +487,6 @@
     {
         protocolMessage = $"Protocol settings saved at {DateTime.Now:t}.";
     }
-
-    private sealed record UpkeepAsset(int Id, string Name, string Type, string Location);
 
     private sealed class ProtocolSetting(string name, bool enabled, string host, int port)
     {
