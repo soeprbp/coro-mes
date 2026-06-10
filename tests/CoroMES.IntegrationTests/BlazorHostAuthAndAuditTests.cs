@@ -94,6 +94,70 @@ public class BlazorHostAuthAndAuditTests
         Assert.Contains(audit!, log => log.Action == "Delete" && log.EntityId == created.Id && log.Succeeded);
     }
 
+    [Fact]
+    public async Task Display_api_persists_definitions_and_viewer_loads_saved_display()
+    {
+        using var factory = new CoroMesWebFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            HandleCookies = true
+        });
+
+        await SignInAsync(client);
+
+        var displayName = $"Integration Display {Guid.NewGuid():N}"[..32];
+        var create = await client.PostAsJsonAsync("/api/v1/displays", new
+        {
+            name = displayName,
+            type = "equipment",
+            refreshSeconds = 7,
+            equipmentId = (int?)null,
+            settingsJson = "{\"layout\":\"test\"}"
+        });
+
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+
+        var created = await create.Content.ReadFromJsonAsync<DisplayDto>(JsonOptions);
+        Assert.NotNull(created);
+        Assert.False(string.IsNullOrWhiteSpace(created!.Id));
+        Assert.Equal(displayName, created.Name);
+        Assert.Equal("equipment", created.Type);
+        Assert.Equal(7, created.RefreshSeconds);
+
+        var fetched = await client.GetFromJsonAsync<DisplayDto>($"/api/v1/displays/{created.Id}", JsonOptions);
+        Assert.NotNull(fetched);
+        Assert.Equal(created.Id, fetched!.Id);
+        Assert.Equal(displayName, fetched.Name);
+
+        var viewer = await client.GetAsync($"/displays/viewer?id={created.Id}");
+        Assert.Equal(HttpStatusCode.OK, viewer.StatusCode);
+
+        var audit = await client.GetFromJsonAsync<AuditLogDto[]>("/api/v1/audit?entityName=DisplayDefinition&take=10", JsonOptions);
+        Assert.NotNull(audit);
+        Assert.Contains(audit!, log => log.Action == "Create" && log.Succeeded);
+    }
+
+    [Fact]
+    public async Task Upkeep_sync_writes_audit_record()
+    {
+        using var factory = new CoroMesWebFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            HandleCookies = true
+        });
+
+        await SignInAsync(client);
+
+        var sync = await client.PostAsync("/api/v1/integration/upkeep/sync", null);
+        Assert.Equal(HttpStatusCode.OK, sync.StatusCode);
+
+        var audit = await client.GetFromJsonAsync<AuditLogDto[]>("/api/v1/audit?entityName=Upkeep&take=10", JsonOptions);
+        Assert.NotNull(audit);
+        Assert.Contains(audit!, log => log.Action == "Sync" && log.Succeeded);
+    }
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private static Task<HttpResponseMessage> SignInAsync(HttpClient client)
@@ -110,6 +174,14 @@ public class BlazorHostAuthAndAuditTests
         public string Action { get; set; } = string.Empty;
         public int? EntityId { get; set; }
         public bool Succeeded { get; set; }
+    }
+
+    private sealed class DisplayDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public int RefreshSeconds { get; set; }
     }
 
     private sealed class CoroMesWebFactory : WebApplicationFactory<Program>

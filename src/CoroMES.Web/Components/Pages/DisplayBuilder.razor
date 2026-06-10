@@ -3,6 +3,9 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = "AdminOnly")]
 @inject IEquipmentRepository EquipmentRepository
+@inject ApplicationDbContext Db
+@inject IAuditLogService AuditLog
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <div class="display-admin">
     <aside class="sidebar compact">
@@ -73,7 +76,7 @@
 
 @code {
     private List<Equipment> equipment = [];
-    private List<DisplayDraft> displays = [];
+    private List<DisplayDefinition> displays = [];
     private DisplayDraft draft = new() { Name = "Line 1 OEE", Type = "oee", RefreshSeconds = 5 };
 
     private string PreviewUrl => $"/displays/viewer?id=preview&type={draft.Type}&name={Uri.EscapeDataString(draft.Name)}";
@@ -81,37 +84,94 @@
     protected override async Task OnInitializedAsync()
     {
         equipment = (await EquipmentRepository.GetAllAsync()).OrderBy(item => item.Code).ToList();
-        displays =
-        [
-            new() { Id = "line1-oee", Name = "Line 1 OEE", Type = "oee", RefreshSeconds = 5 },
-            new() { Id = "quality", Name = "Quality Monitor", Type = "quality", RefreshSeconds = 10 },
-            new() { Id = "equipment", Name = "Equipment Status", Type = "equipment", RefreshSeconds = 3 }
-        ];
+        await LoadDisplays();
     }
 
-    private void CreateDisplay()
+    private async Task LoadDisplays()
     {
-        var saved = new DisplayDraft
+        displays = await Db.DisplayDefinitions
+            .AsNoTracking()
+            .Where(display => display.IsActive)
+            .OrderBy(display => display.Name)
+            .ToListAsync();
+    }
+
+    private async Task CreateDisplay()
+    {
+        var saved = new DisplayDefinition
         {
-            Id = string.IsNullOrWhiteSpace(draft.Id) ? $"display-{DateTime.UtcNow:HHmmss}" : draft.Id,
-            Name = string.IsNullOrWhiteSpace(draft.Name) ? "New Display" : draft.Name,
-            Type = draft.Type,
+            Slug = await CreateUniqueSlugAsync(draft.Name),
+            Name = string.IsNullOrWhiteSpace(draft.Name) ? "New Display" : draft.Name.Trim(),
+            Type = CleanType(draft.Type),
             RefreshSeconds = Math.Max(1, draft.RefreshSeconds),
-            EquipmentId = draft.EquipmentId
+            EquipmentId = draft.EquipmentId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
         };
 
-        displays.Insert(0, saved);
+        Db.DisplayDefinitions.Add(saved);
+        await Db.SaveChangesAsync();
+        await AuditLog.RecordAsync(null, new AuditLogEntry(
+            "Create",
+            nameof(DisplayDefinition),
+            saved.Id,
+            DescribeDisplay(saved),
+            Actor: await GetCurrentActorAsync(),
+            Route: "/displays/builder"));
+        await LoadDisplays();
         draft = new DisplayDraft { Name = "New Display", Type = "oee", RefreshSeconds = 5 };
     }
 
-    private static string ViewerUrl(DisplayDraft display)
+    private static string ViewerUrl(DisplayDefinition display)
     {
-        return $"/displays/viewer?id={display.Id}&type={display.Type}&name={Uri.EscapeDataString(display.Name)}";
+        return $"/displays/viewer?id={display.Slug}";
+    }
+
+    private async Task<string> CreateUniqueSlugAsync(string? name)
+    {
+        var root = Slugify(string.IsNullOrWhiteSpace(name) ? "New Display" : name);
+        var slug = root;
+        var suffix = 1;
+
+        while (await Db.DisplayDefinitions.AnyAsync(display => display.Slug == slug))
+        {
+            suffix++;
+            slug = $"{root}-{suffix}";
+        }
+
+        return slug;
+    }
+
+    private static string CleanType(string? type)
+    {
+        var value = string.IsNullOrWhiteSpace(type) ? "oee" : type.Trim().ToLowerInvariant();
+        return value is "oee" or "production" or "quality" or "equipment" ? value : "oee";
+    }
+
+    private static string Slugify(string value)
+    {
+        var chars = value
+            .ToLowerInvariant()
+            .Select(ch => char.IsLetterOrDigit(ch) ? ch : '-')
+            .ToArray();
+
+        var slug = string.Join('-', new string(chars).Split('-', StringSplitOptions.RemoveEmptyEntries));
+        return string.IsNullOrWhiteSpace(slug) ? $"display-{DateTime.UtcNow:HHmmss}" : slug;
+    }
+
+    private async Task<string> GetCurrentActorAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        return authState.User.Identity?.Name ?? "unknown";
+    }
+
+    private static string DescribeDisplay(DisplayDefinition display)
+    {
+        return $"Slug={display.Slug}; Name={display.Name}; Type={display.Type}; RefreshSeconds={display.RefreshSeconds}; EquipmentId={display.EquipmentId?.ToString() ?? "none"}";
     }
 
     private sealed class DisplayDraft
     {
-        public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Type { get; set; } = "oee";
         public int RefreshSeconds { get; set; } = 5;

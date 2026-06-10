@@ -33,6 +33,9 @@ public class ApplicationDbContext : DbContext
     // Audit
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
+    // Displays
+    public DbSet<DisplayDefinition> DisplayDefinitions => Set<DisplayDefinition>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -51,6 +54,16 @@ public class ApplicationDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Code).IsRequired().HasMaxLength(50);
             entity.HasIndex(e => e.Code).IsUnique();
+        });
+
+        modelBuilder.Entity<DisplayDefinition>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Slug).IsRequired().HasMaxLength(120);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(160);
+            entity.Property(e => e.Type).IsRequired().HasMaxLength(40);
+            entity.Property(e => e.SettingsJson).HasMaxLength(4000);
+            entity.HasIndex(e => e.Slug).IsUnique();
         });
 
         // Material
@@ -104,6 +117,12 @@ public class ApplicationDbContext : DbContext
             .WithMany(e => e.Maintenances)
             .HasForeignKey(e => e.EquipmentId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<DisplayDefinition>()
+            .HasOne(d => d.Equipment)
+            .WithMany()
+            .HasForeignKey(d => d.EquipmentId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<BillOfMaterials>()
             .HasOne(b => b.Product)

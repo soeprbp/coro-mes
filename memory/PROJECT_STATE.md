@@ -20,6 +20,8 @@ CoroMES is no longer just a scaffold. The repository now contains:
 - domain entities and repository interfaces
 - EF Core persistence and migrations
 - a forward Blazor host for admin and shop-floor display workflows
+- modular Blazor-host endpoint files for API parity work
+- persisted display definitions used by the builder and viewer
 - static admin and shop-floor display prototype URLs that need redirects or compatibility shims during migration
 - an i3X client and repository adapter layer
 - a CESMII i3X 1.0 standards-tracking note with exact upstream branch/tag references
@@ -77,7 +79,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 ### Tests
 
 - `CoroMES.UnitTests` contains real coverage for CTI ingestion and i3X client behavior
-- `CoroMES.IntegrationTests` now includes the first Blazor host smoke coverage for auth gates and equipment audit logging
+- `CoroMES.IntegrationTests` now includes Blazor host smoke coverage for auth gates, equipment audit logging, display persistence, and UpKeep sync audit logging
 
 ## What Is Working Today
 
@@ -88,6 +90,8 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - read endpoints exist for quality inspections and NCRs
 - prototype Upkeep endpoints and display endpoints exist
 - `CoroMES.Web` is the forward Blazor host
+- `CoroMES.Web` maps API parity through endpoint modules under `src/CoroMES.Web/Endpoints`
+- display definitions persist through `DisplayDefinition` and load in the Blazor viewer by slug
 - old static admin and display URLs are expected to redirect or remain compatible during migration
 - EF Core persistence is wired up
 - PostgreSQL migrations are checked in
@@ -96,18 +100,18 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - MES-Vision integration requirements are documented in `docs/MES_VISION_INTEGRATION.md`
 - CTI ingestion primitives are implemented and unit-tested
 - first Blazor admin auth gate protects `/admin`, `/displays/builder`, and `/api/v1/*`
-- first-pass audit logging records equipment create/update/delete actions
-- first Blazor integration tests exercise public versus protected route behavior and equipment audit writes
+- first-pass audit logging records equipment create/update/delete, display definition create/update, and UpKeep sync/downtime actions
+- first Blazor integration tests exercise public versus protected route behavior, equipment audit writes, display persistence, and UpKeep sync audit writes
 
 ## Important Limitations
 
-- Blazor is now the forward UI path, but screens, redirect coverage, and persisted display definitions still need build-out
+- Blazor is now the forward UI path, but screens, redirect coverage, and settings persistence still need build-out
 - no reporting API implementation despite the project and older docs
 - no industrial API surface despite earlier documentation
 - no persisted vision telemetry model yet despite MES-Vision being identified as the first test endpoint
 - current CoroMES i3X client still needs 1.0 route-shape updates before it should be used as the MES-Vision collector foundation
 - first auth gate is cookie-based and suitable for migration/local control, not final enterprise identity
-- audit logging covers equipment mutations only so far
+- audit logging covers equipment, display definitions, and first-pass UpKeep placeholder actions so far
 - many integrations are planned boundaries rather than complete implementations
 - some prototype behaviors are still hard-coded or placeholder-based
 - several memory and doc files had drifted from the code before this update
@@ -125,14 +129,18 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - first Blazor host integration tests started for auth and audit behavior
 - MES-Vision repository inspected and documented as a vision telemetry/i3X test endpoint
 - CESMII i3X 1.0 upstream baseline checked and documented
+- Blazor host `Program.cs` was reduced to startup composition with route modules under `Endpoints`
+- display builder configurations now persist through EF Core and load in the viewer by slug
+- admin settings now has a scaffold for integration endpoints and feature flags, but persistence and secret storage are still pending
+- audit coverage expanded to display definitions and UpKeep sync/downtime placeholder actions
 
 ## Recommended Next Steps
 
 1. keep the Blazor auth/audit integration smoke suite green while expanding the host
-2. move business behavior out of the large API `Program.cs` into endpoint modules and application services
-3. align the CoroMES i3X client to CESMII 1.0 route shapes, subscription scoping, sync batches, and bulk writes
-4. build a read-only MES-Vision collector using i3X discovery, current values, and event history
-5. persist display builder configurations and load them through the Blazor viewer
+2. align the CoroMES i3X client to CESMII 1.0 route shapes, subscription scoping, sync batches, and bulk writes
+3. move UpKeep placeholder asset matching behind a dedicated mock/live integration boundary
+4. persist admin integration settings and feature flags with secret-safe storage
+5. build a read-only MES-Vision collector using i3X discovery, current values, and event history
 6. replace the temporary admin access-code gate with the chosen enterprise identity model
 7. turn the CTI ingestion framework into a runnable connector workflow or host
 8. collect real Welch CTI sample files and source-system inventory

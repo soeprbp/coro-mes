@@ -12,6 +12,8 @@ CoroMES is structured like a Clean Architecture solution, but the implementation
 - `CoroMES.Api` is the backend Minimal API host
 - `CoroMES.Infrastructure` contains the EF Core context, repository implementations, and i3X-backed repository adapters
 - `CoroMES.Core` contains the real domain entities, enums, and repository interfaces
+- `CoroMES.Web/Endpoints` contains the forward host route modules for auth, compatibility, audit, MES resources, integrations, and displays
+- `CoroMES.Web/Startup` contains Blazor-host startup/database safety extensions
 - `integration/CoroMES.Integration.Cti` is an active ingestion framework for legacy CTI/EPS files
 - `industrial/CoroMES.Industrial.i3X` is an active i3X client, model, and translation layer
 - old static URLs under `web/admin` and `web/displays` are migration compatibility paths that should redirect to Blazor routes or remain shimmed until replaced
@@ -33,6 +35,9 @@ Clients
   |
   v
 CoroMES.Web (forward Blazor host)
+  |- endpoint modules under src/CoroMES.Web/Endpoints
+  |- startup/database extensions under src/CoroMES.Web/Startup
+  |- persisted display definitions
   |
   v
 CoroMES.Api (backend Minimal API host)
@@ -46,6 +51,7 @@ CoroMES.Core + CoroMES.Infrastructure
   |- domain entities
   |- repository interfaces
   |- ApplicationDbContext
+  |- DisplayDefinitions and AuditLogs
   |- EF repositories
   |- i3X repository adapters
   |
@@ -74,6 +80,10 @@ Today, many responsibilities that would eventually move into an application laye
   - admin workflow pages
   - shop-floor display viewer and builder pages
   - client access to the existing backend API route contract
+  - modular endpoint mapping under `Endpoints`
+  - startup database checks and display seed data under `Startup`
+
+The Blazor host now persists display definitions instead of relying only on hard-coded display payloads. `DisplayDefinition` records store the slug, label, type, refresh interval, active flag, optional equipment link, and future JSON settings.
 
 ### Domain Layer
 
@@ -153,7 +163,7 @@ Notable gaps:
 
 - no reporting API implementation
 - no industrial protocol API implementation
-- Blazor screens are newly established as the forward UI path and still need build-out
+- Blazor screens are newly established as the forward UI path and still need build-out, but display builder/viewer definitions are now persisted
 - no completed application-service or CQRS layer
 - placeholder Upkeep behavior in the API
 - incomplete integration tests
@@ -162,11 +172,12 @@ Notable gaps:
 
 The cleanest next steps are:
 
-1. build `CoroMES.Web` as the forward Blazor host
+1. keep `CoroMES.Web` modular as the forward Blazor host
 2. turn `CoroMES.Application` into a real service/use-case layer
 3. make CTI ingestion runnable as an actual hosted connector workflow
 4. preserve API route parity while replacing static URLs with redirects
-5. either implement or trim the planned reporting and industrial surfaces
+5. align the i3X client to CESMII 1.0 before building MES-Vision collection
+6. either implement or trim the planned reporting and industrial surfaces
 
 ## Deployment Notes
 

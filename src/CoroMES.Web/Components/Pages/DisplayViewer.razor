@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @implements IDisposable
 @inject IEquipmentRepository EquipmentRepository
+@inject ApplicationDbContext Db
 @inject IJSRuntime Js
 
 <main class="viewer-shell">
@@ -70,6 +71,7 @@
 @code {
     private PeriodicTimer? timer;
     private List<Equipment> equipment = [];
+    private DisplayDefinition? display;
     private DateTime now = DateTime.Now;
 
     [SupplyParameterFromQuery(Name = "id")]
@@ -84,15 +86,28 @@
     [SupplyParameterFromQuery(Name = "refresh")]
     public int? Refresh { get; set; }
 
-    private string Type => string.IsNullOrWhiteSpace(DisplayType) ? "oee" : DisplayType.ToLowerInvariant();
-    private string Title => string.IsNullOrWhiteSpace(DisplayName) ? DisplayId ?? "Display" : DisplayName;
-    private int RefreshSeconds => Math.Max(1, Refresh ?? 5);
+    private string Type => display?.Type ?? (string.IsNullOrWhiteSpace(DisplayType) ? "oee" : DisplayType.ToLowerInvariant());
+    private string Title => display?.Name ?? (string.IsNullOrWhiteSpace(DisplayName) ? DisplayId ?? "Display" : DisplayName);
+    private int RefreshSeconds => Math.Max(1, display?.RefreshSeconds ?? Refresh ?? 5);
 
     protected override async Task OnInitializedAsync()
     {
         equipment = (await EquipmentRepository.GetAllAsync()).ToList();
+        await LoadDisplayAsync();
         timer = new PeriodicTimer(TimeSpan.FromSeconds(RefreshSeconds));
         _ = TickAsync();
+    }
+
+    private async Task LoadDisplayAsync()
+    {
+        if (string.IsNullOrWhiteSpace(DisplayId) || DisplayId == "preview")
+        {
+            return;
+        }
+
+        display = await Db.DisplayDefinitions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Slug == DisplayId && item.IsActive);
     }
 
     private async Task TickAsync()

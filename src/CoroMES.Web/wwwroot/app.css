@@ -369,7 +369,8 @@ th {
 }
 
 .activity-list,
-.display-list {
+.display-list,
+.settings-list {
     display: grid;
     gap: 10px;
 }
@@ -410,6 +411,31 @@ th {
 }
 
 .toggle input {
+    width: auto;
+}
+
+.toggle-row {
+    display: flex;
+    grid-template-columns: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #ffffff;
+}
+
+.toggle-row span {
+    display: grid;
+    gap: 4px;
+}
+
+.toggle-row small {
+    color: var(--muted);
+}
+
+.toggle-row input {
     width: auto;
 }
 

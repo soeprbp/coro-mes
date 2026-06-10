@@ -33,24 +33,34 @@ This is a migration gate, not the final identity model. Before production use, r
 
 ## Audit Logging
 
-The first audit foundation records equipment create/update/delete actions from both the Blazor admin page and the JSON API.
+The first audit foundation records equipment create/update/delete actions from both the Blazor admin page and the JSON API. It now also covers display definition create/update actions and UpKeep sync/downtime placeholder actions.
 
 - Entity: `AuditLog`
 - Storage: `ApplicationDbContext.AuditLogs`
 - Read endpoint: `GET /api/v1/audit`
-- First covered entity: `Equipment`
+- Covered entities today: `Equipment`, `DisplayDefinition`, and first-pass `Upkeep` integration actions
 
-The next audit expansion should cover work orders, materials, operators, Upkeep sync/downtime actions, and any future i3X or industrial write paths.
+The next audit expansion should cover work orders, materials, operators, persisted settings changes, and any future i3X or industrial write paths.
+
+## Modular Host Shape
+
+`src/CoroMES.Web` now keeps startup small and routes behavior through focused modules:
+
+- `Endpoints/*Endpoints.cs` maps auth, compatibility redirects, audit, work orders, equipment, materials, operators, quality, UpKeep, and display endpoints.
+- `Startup/DatabaseStartupExtensions.cs` owns startup-time database safety checks and seed behavior for Blazor-host tables.
+- `Program.cs` stays responsible for service registration, middleware order, and calling the endpoint composition methods.
+
+This is the first modularization step. The next extraction should move heavier business workflows from endpoint lambdas into application services once the route surface settles.
 
 ## Next Build Slice
 
 The team should move the Blazor fork forward in this order:
 
 1. Keep the auth and audit integration smoke suite green as a migration guardrail.
-2. Extract API endpoint composition out of the large `Program.cs` into endpoint modules and application services.
-3. Persist display builder configurations instead of returning hard-coded display definitions.
-4. Wire the Blazor display viewer to saved display definitions.
-5. Move the current UpKeep placeholder catalog behind an integration boundary with a clear mock/live mode.
+2. Move the current UpKeep placeholder catalog behind an integration boundary with a clear mock/live mode.
+3. Align the i3X client to CESMII 1.0 route shapes before building the MES-Vision collector.
+4. Persist admin integration settings and feature flags with secret-safe storage.
+5. Start moving endpoint behavior into application services where workflows are no longer simple CRUD.
 
 This order keeps Jane's security surface reviewable while Wash and River expand the host without burying business behavior inside the startup file.
 
@@ -82,6 +92,8 @@ POST   /api/v1/integration/upkeep/sync
 POST   /api/v1/integration/upkeep/downtime
 GET    /api/v1/displays
 GET    /api/v1/displays/{id}
+POST   /api/v1/displays
+PUT    /api/v1/displays/{id}
 ```
 
 When Blazor screens are added or rewritten, they should call or preserve these backend routes instead of silently changing resource names, casing, or route prefixes.
@@ -127,4 +139,6 @@ Suggested forward mappings:
 - Anonymous requests to `/api/v1/equipment` return `401`.
 - Signed-in admin requests can reach `/admin/equipment` and `/api/v1/equipment`.
 - Equipment create/update/delete writes audit records.
+- Display definitions persist through `/api/v1/displays` and load in `/displays/viewer?id={slug}`.
+- UpKeep sync and downtime placeholder calls write audit records.
 - `/displays/viewer?id=preview&type=oee` remains reachable without admin sign-in.

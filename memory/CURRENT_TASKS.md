@@ -40,11 +40,13 @@
 - [x] Add first Blazor admin/API auth gate from Jane security pass
 - [x] Add first-pass audit logging for equipment create/update/delete
 - [x] Add integration coverage for Blazor auth gates and equipment audit logging
+- [x] Move API endpoint composition out of `Program.cs` into Blazor host endpoint modules
+- [x] Persist display builder configurations and load them through the Blazor viewer
+- [x] Expand audit logging to display definitions and UpKeep sync/downtime placeholders
+- [x] Add admin settings scaffold for integration endpoints and feature flags
 - [ ] Replace static admin pages with Blazor routes while preserving `/admin` compatibility
 - [ ] Replace static display viewer and builder pages with Blazor routes while preserving `/displays/viewer.html` and `/displays/builder.html` redirects
 - [ ] Keep Blazor screens aligned with current API route parity in `docs/API.md`
-- [ ] Move API business logic out of `Program.cs` into application services or endpoint modules
-- [ ] Persist display builder configurations and load them through the Blazor viewer
 - [ ] Move Upkeep placeholder asset matching behind a dedicated integration boundary
 
 ### 5. Product Surface Expansion
@@ -56,7 +58,7 @@
 - [ ] Add dashboard/reporting widgets for vision-derived runtime, idle time, camera health, and zone activity
 - [ ] Replace placeholder Upkeep behavior with a real integration strategy
 - [ ] Replace temporary admin access-code gate with the chosen enterprise identity model
-- [ ] Expand audit logging beyond equipment mutations
+- [ ] Expand audit logging beyond equipment, display, and UpKeep placeholder mutations
 - [ ] Expand inventory, workforce, and quality write workflows
 
 ### 6. Testing
@@ -81,9 +83,9 @@
 
 1. Collect CTI source-system details and sample files
 2. Turn the CTI framework into a runnable connector host
-3. Finish and keep green the Blazor auth/audit integration tests
-4. Refactor API composition so the backend is easier to extend safely
-5. Align the CoroMES i3X client to CESMII 1.0 before building the MES-Vision collector
-6. Persist display configurations and wire the Blazor viewer to saved definitions
+3. Keep the Blazor auth/audit/display integration tests green
+4. Align the CoroMES i3X client to CESMII 1.0 before building the MES-Vision collector
+5. Move UpKeep placeholder asset matching behind a dedicated mock/live integration boundary
+6. Persist admin integration settings and feature flags with secret-safe storage
 7. Build the first read-only MES-Vision collector using i3X discovery, value polling, and history polling
 8. Start either implementing or pruning the reporting and industrial surfaces promised by older docs

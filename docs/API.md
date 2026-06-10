@@ -66,7 +66,7 @@ Notes:
 
 - this endpoint is admin-protected in `CoroMES.Web`
 - returns recent audit records newest first
-- first-pass audit coverage records equipment create/update/delete from both the Blazor admin UI and the JSON API
+- first-pass audit coverage records equipment create/update/delete, display definition create/update, and UpKeep sync/downtime actions
 
 ### Materials
 
@@ -121,13 +121,18 @@ Notes:
 ### Displays
 
 ```text
-GET /api/v1/displays
-GET /api/v1/displays/{id}
+GET  /api/v1/displays
+GET  /api/v1/displays/{id}
+POST /api/v1/displays
+PUT  /api/v1/displays/{id}
 ```
 
 Notes:
 
-- these currently return hard-coded display configuration payloads
+- display definitions are persisted in `ApplicationDbContext.DisplayDefinitions`
+- `id` is the display slug
+- default display definitions are seeded at startup when no display definitions exist
+- the Blazor display builder writes saved definitions and the viewer loads them by slug
 
 ## Blazor Route Parity and Redirects
 

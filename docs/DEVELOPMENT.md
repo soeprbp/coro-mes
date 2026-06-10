@@ -75,6 +75,8 @@ dotnet run --project src/CoroMES.Web
 
 `src/CoroMES.Web` is the forward UI host for admin and shop-floor display workflows. `src/CoroMES.Api` remains the backend API host and route contract source of truth.
 
+The Blazor host route surface is split into focused files under `src/CoroMES.Web/Endpoints`. Keep new host endpoints in those modules, and add application services only when the endpoint logic grows beyond straightforward mapping.
+
 ### 6. Sign In To Admin
 
 The Blazor host protects `/admin`, `/displays/builder`, and `/api/v1/*` with the first cookie-based admin gate.
@@ -92,7 +94,7 @@ $env:Auth__AdminAccessCode = "<set-a-real-local-secret>"
 dotnet run --project src/CoroMES.Web
 ```
 
-Shop-floor viewer routes such as `/displays/viewer?id=preview&type=oee` remain anonymous during migration.
+Shop-floor viewer routes such as `/displays/viewer?id=preview&type=oee` remain anonymous during migration. Saved display definitions can also be opened by slug, for example `/displays/viewer?id=line1-oee`.
 
 ### 7. Access Swagger
 
@@ -113,6 +115,14 @@ src/
 ## Adding a New Feature
 
 For UI work, add Blazor pages/components in `src/CoroMES.Web` and preserve the existing backend route contract unless an API migration is explicitly planned. Legacy static URLs such as `/admin`, `/displays/viewer.html`, and `/displays/builder.html` should redirect to the matching Blazor route or remain compatible until the replacement is complete.
+
+For API parity work in the Blazor host:
+
+- Add route mappings under `src/CoroMES.Web/Endpoints`.
+- Keep startup-only database checks in `src/CoroMES.Web/Startup`.
+- Add persisted data to `ApplicationDbContext` and EF migrations.
+- Update `docs/API.md`, `docs/BLAZOR_MIGRATION.md`, and memory files in the same change.
+- Keep `dotnet test CoroMES.sln` green before handing the app back.
 
 ### 1. Create Entity (Core)
 

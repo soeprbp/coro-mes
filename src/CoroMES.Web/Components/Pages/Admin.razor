@@ -237,11 +237,57 @@
         }
         else if (section == "settings")
         {
-            <header class="page-header"><div><p class="eyebrow">System</p><h1>Settings</h1></div></header>
+            <header class="page-header">
+                <div><p class="eyebrow">System</p><h1>Settings</h1></div>
+                <button class="button primary" @onclick="SaveSystemSettings">Save</button>
+            </header>
+            <section class="split-layout">
+                <div class="panel">
+                    <div class="panel-title"><h2>Integration Endpoints</h2></div>
+                    <div class="form-grid">
+                        @foreach (var endpoint in integrationEndpoints)
+                        {
+                            <label>
+                                @endpoint.Name
+                                <input @bind="endpoint.BaseUrl" placeholder="@endpoint.Placeholder" />
+                            </label>
+                            <label>
+                                Mode
+                                <select @bind="endpoint.Mode">
+                                    <option value="disabled">Disabled</option>
+                                    <option value="mock">Mock</option>
+                                    <option value="read-only">Read Only</option>
+                                    <option value="enabled">Enabled</option>
+                                </select>
+                            </label>
+                        }
+                    </div>
+                    <p class="muted">Endpoint settings are scaffolding for the forward branch. Do not enter secrets or RTSP credentials here.</p>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title"><h2>Feature Flags</h2></div>
+                    <div class="settings-list">
+                        @foreach (var flag in featureFlags)
+                        {
+                            <label class="toggle-row">
+                                <span>
+                                    <strong>@flag.Name</strong>
+                                    <small>@flag.Description</small>
+                                </span>
+                                <input type="checkbox" @bind="flag.Enabled" />
+                            </label>
+                        }
+                    </div>
+                </div>
+            </section>
+
             <section class="panel narrow">
+                <div class="panel-title"><h2>Security</h2></div>
                 <label>API Base URL <input value="http://localhost:5000" readonly /></label>
                 <label>Admin Mode <input value="First auth gate enabled" readonly /></label>
                 <p class="muted">This Blazor page is protected by the migration admin gate. Replace the access-code flow with enterprise identity before production use.</p>
+                <p class="notice">@settingsMessage</p>
             </section>
         }
     </main>
@@ -255,6 +301,21 @@
         new("Ethernet/IP", false, "192.168.1.10", 44818)
     ];
 
+    private readonly List<IntegrationEndpointSetting> integrationEndpoints =
+    [
+        new("MES-Vision i3X", "http://localhost:5002/v1/", "read-only", "http://localhost:5002/v1/"),
+        new("MES-Vision Dashboard", "http://localhost:5000/", "disabled", "http://localhost:5000/"),
+        new("UpKeep", "", "mock", "https://api.onupkeep.com/")
+    ];
+
+    private readonly List<FeatureFlagSetting> featureFlags =
+    [
+        new("Blazor display persistence", "Save shop-floor display definitions in CoroMES.", true),
+        new("MES-Vision collector", "Enable the future read-only vision telemetry collector.", false),
+        new("i3X repository mode", "Use i3X-backed repositories instead of EF-backed repositories.", false),
+        new("Enterprise identity", "Replace the migration access-code gate.", false)
+    ];
+
     private List<Equipment> equipment = [];
     private List<UpkeepAsset> upkeepAssets = [];
     private Equipment form = new();
@@ -263,6 +324,7 @@
     private string? message;
     private string syncStatus = "Last sync: Never";
     private string? protocolMessage;
+    private string? settingsMessage;
     private string upkeepSearch = string.Empty;
     private UpkeepAsset? selectedUpkeepAsset => GetUpkeepAsset(form.UpkeepAssetId);
 
@@ -515,6 +577,11 @@
         protocolMessage = $"Protocol settings saved at {DateTime.Now:t}.";
     }
 
+    private void SaveSystemSettings()
+    {
+        settingsMessage = $"Settings scaffold saved at {DateTime.Now:t}. Persistence and secret storage are still pending.";
+    }
+
     private async Task<string> GetCurrentActorAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -537,5 +604,20 @@
         public bool Enabled { get; set; } = enabled;
         public string Host { get; set; } = host;
         public int Port { get; set; } = port;
+    }
+
+    private sealed class IntegrationEndpointSetting(string name, string baseUrl, string mode, string placeholder)
+    {
+        public string Name { get; } = name;
+        public string BaseUrl { get; set; } = baseUrl;
+        public string Mode { get; set; } = mode;
+        public string Placeholder { get; } = placeholder;
+    }
+
+    private sealed class FeatureFlagSetting(string name, string description, bool enabled)
+    {
+        public string Name { get; } = name;
+        public string Description { get; } = description;
+        public bool Enabled { get; set; } = enabled;
     }
 }
