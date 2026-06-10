@@ -70,3 +70,11 @@ data/edi/inbound/*
 data/edi/outbound/*
 !data/edi/inbound/.gitkeep
 !data/edi/outbound/.gitkeep
+
+# CTI/EPS payloads (may contain customer/order/production data)
+data/cti/raw/*
+data/cti/quarantine/*
+data/cti/archive/*
+!data/cti/raw/.gitkeep
+!data/cti/quarantine/.gitkeep
+!data/cti/archive/.gitkeep
