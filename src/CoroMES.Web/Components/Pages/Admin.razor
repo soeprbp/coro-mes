@@ -297,7 +297,7 @@
                                     </div>
                                     <h3>@alarm.Title</h3>
                                     <p>@alarm.Message</p>
-                                    <small>@alarm.Source - @alarm.TriggeredAtUtc.ToLocalTime():g</small>
+                                    <small>@alarm.Source - @(alarm.TriggeredAtUtc.ToLocalTime().ToString("g"))</small>
                                     @if (!string.IsNullOrWhiteSpace(alarm.AlertChannels))
                                     {
                                         <code>@alarm.AlertChannels</code>
