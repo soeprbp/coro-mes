@@ -24,8 +24,10 @@
 ### 3. i3X and Translator Refinement
 
 - [x] Add i3X client and repository adapter support
+- [x] Investigate `soeprbp/mes-vision` as the first i3X/vision telemetry test endpoint
 - [ ] Refine translator type mappings where placeholder reuse still exists
 - [ ] Decide whether i3X is a primary runtime mode, a migration bridge, or both
+- [ ] Add MES-Vision compatibility coverage for i3X object filtering, history, subscriptions, and value writes
 - [ ] Align translator outputs with future MCP exposure requirements
 
 ### 4. Blazor Host Migration
@@ -47,6 +49,9 @@
 
 - [ ] Decide whether to implement the documented reporting API or reduce its documented scope
 - [ ] Decide whether to implement the documented industrial API or reduce its documented scope
+- [ ] Add MES-Vision source registry, telemetry readings, and event history storage
+- [ ] Add admin mapping for MES-Vision cameras/zones to CoroMES equipment
+- [ ] Add dashboard/reporting widgets for vision-derived runtime, idle time, camera health, and zone activity
 - [ ] Replace placeholder Upkeep behavior with a real integration strategy
 - [ ] Replace temporary admin access-code gate with the chosen enterprise identity model
 - [ ] Expand audit logging beyond equipment mutations
@@ -77,4 +82,5 @@
 3. Finish and keep green the Blazor auth/audit integration tests
 4. Refactor API composition so the backend is easier to extend safely
 5. Persist display configurations and wire the Blazor viewer to saved definitions
-6. Start either implementing or pruning the reporting and industrial surfaces promised by older docs
+6. Build the first read-only MES-Vision collector using i3X discovery, value polling, and history polling
+7. Start either implementing or pruning the reporting and industrial surfaces promised by older docs

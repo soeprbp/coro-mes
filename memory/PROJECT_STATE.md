@@ -22,6 +22,7 @@ CoroMES is no longer just a scaffold. The repository now contains:
 - a forward Blazor host for admin and shop-floor display workflows
 - static admin and shop-floor display prototype URLs that need redirects or compatibility shims during migration
 - an i3X client and repository adapter layer
+- a documented plan for using `soeprbp/mes-vision` as the first vision telemetry test endpoint
 - a CTI/EPS file-ingestion framework designed for safe migration work
 
 The codebase still stops short of a full MES application. Several architectural boundaries exist as project shells or planned expansion points rather than finished product areas.
@@ -61,7 +62,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 | CoroMES.Integration.TrueCommerce | Planned boundary |
 | CoroMES.Integration.Cti | Active framework for file discovery, raw capture, parsing, validation, quarantine |
 | CoroMES.Integration.Upkeep | Planned boundary; API currently uses placeholders |
-| CoroMES.Integration.IIoT | Planned boundary |
+| CoroMES.Integration.IIoT | Planned boundary; likely home for the MES-Vision collector or shared telemetry ingestion patterns |
 
 ### Industrial Layer (`industrial/`)
 
@@ -90,6 +91,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - EF Core persistence is wired up
 - PostgreSQL migrations are checked in
 - optional i3X repository mode exists behind configuration
+- MES-Vision integration requirements are documented in `docs/MES_VISION_INTEGRATION.md`
 - CTI ingestion primitives are implemented and unit-tested
 - first Blazor admin auth gate protects `/admin`, `/displays/builder`, and `/api/v1/*`
 - first-pass audit logging records equipment create/update/delete actions
@@ -100,6 +102,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - Blazor is now the forward UI path, but screens, redirect coverage, and persisted display definitions still need build-out
 - no reporting API implementation despite the project and older docs
 - no industrial API surface despite earlier documentation
+- no persisted vision telemetry model yet despite MES-Vision being identified as the first test endpoint
 - first auth gate is cookie-based and suitable for migration/local control, not final enterprise identity
 - audit logging covers equipment mutations only so far
 - many integrations are planned boundaries rather than complete implementations
@@ -117,20 +120,23 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - Jane security pass added the first Blazor admin/API auth gate
 - first audit foundation added `AuditLog` storage and equipment mutation logging
 - first Blazor host integration tests started for auth and audit behavior
+- MES-Vision repository inspected and documented as a vision telemetry/i3X test endpoint
 
 ## Recommended Next Steps
 
 1. keep the Blazor auth/audit integration smoke suite green while expanding the host
 2. move business behavior out of the large API `Program.cs` into endpoint modules and application services
-3. persist display builder configurations and load them through the Blazor viewer
-4. replace the temporary admin access-code gate with the chosen enterprise identity model
-5. turn the CTI ingestion framework into a runnable connector workflow or host
-6. collect real Welch CTI sample files and source-system inventory
+3. build a read-only MES-Vision collector using i3X discovery, current values, and event history
+4. persist display builder configurations and load them through the Blazor viewer
+5. replace the temporary admin access-code gate with the chosen enterprise identity model
+6. turn the CTI ingestion framework into a runnable connector workflow or host
+7. collect real Welch CTI sample files and source-system inventory
 
 ## Key References
 
 - `docs/CTI_RESEARCH_BRIEF.md`
 - `docs/INTEGRATIONS.md`
+- `docs/MES_VISION_INTEGRATION.md`
 - `docs/API.md`
 - `docs/ARCHITECTURE.md`
 - `memory/LONG_TERM_GOALS.md`
