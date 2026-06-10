@@ -14,6 +14,7 @@ CoroMES is structured like a Clean Architecture solution, but the implementation
 - `CoroMES.Core` contains the real domain entities, enums, and repository interfaces
 - `CoroMES.Web/Endpoints` contains the forward host route modules for auth, compatibility, audit, MES resources, integrations, and displays
 - `CoroMES.Web/Startup` contains Blazor-host startup/database safety extensions
+- `integration/CoroMES.Integration.Alerts` is an active guarded boundary for email, SMS, Pushover, and UpKeep alert notification paths
 - `integration/CoroMES.Integration.Cti` is an active ingestion framework for legacy CTI/EPS files
 - `integration/CoroMES.Integration.Upkeep` is an active mock/disabled/live boundary for UpKeep asset lookup, sync, and downtime adapter work
 - `industrial/CoroMES.Industrial.i3X` is an active i3X client, model, and translation layer
@@ -39,6 +40,7 @@ CoroMES.Web (forward Blazor host)
   |- endpoint modules under src/CoroMES.Web/Endpoints
   |- startup/database extensions under src/CoroMES.Web/Startup
   |- persisted display definitions
+  |- alarm service and admin alarm workflow
   |
   v
 CoroMES.Api (backend Minimal API host)
@@ -52,11 +54,12 @@ CoroMES.Core + CoroMES.Infrastructure
   |- domain entities
   |- repository interfaces
   |- ApplicationDbContext
-  |- DisplayDefinitions and AuditLogs
+  |- DisplayDefinitions, AlarmEvents, and AuditLogs
   |- EF repositories
   |- i3X repository adapters
   |
   +--> CTI ingestion framework
+  +--> Alerting integration boundary
   +--> UpKeep integration boundary
   +--> future external integrations
   +--> future industrial protocol services
@@ -86,6 +89,8 @@ Today, many responsibilities that would eventually move into an application laye
   - startup database checks and display seed data under `Startup`
 
 The Blazor host now persists display definitions instead of relying only on hard-coded display payloads. `DisplayDefinition` records store the slug, label, type, refresh interval, active flag, optional equipment link, and future JSON settings.
+
+The Blazor host also owns the first alarm workflow. `AlarmEvent` records capture source, severity, status, optional equipment, channel list, and notification summary. Outbound notifications are routed through `CoroMES.Integration.Alerts`; mock and disabled modes are safe for local work, while live mode is intentionally guarded until provider-specific credentials and send contracts are confirmed.
 
 ### Domain Layer
 
@@ -169,6 +174,7 @@ Notable gaps:
 - no completed application-service or CQRS layer
 - live UpKeep write behavior is still blocked pending final API contract and credential handling
 - incomplete integration tests
+- live alert dispatch is still blocked pending email/SMS/Pushover/UpKeep provider configuration, throttling, and escalation rules
 
 ## Near-Term Architectural Direction
 
@@ -177,9 +183,10 @@ The cleanest next steps are:
 1. keep `CoroMES.Web` modular as the forward Blazor host
 2. turn `CoroMES.Application` into a real service/use-case layer
 3. make CTI ingestion runnable as an actual hosted connector workflow
-4. preserve API route parity while replacing static URLs with redirects
-5. align the i3X client to CESMII 1.0 before building MES-Vision collection
-6. either implement or trim the planned reporting and industrial surfaces
+4. persist admin settings and feature flags with secret-safe storage
+5. preserve API route parity while replacing static URLs with redirects
+6. align the i3X client to CESMII 1.0 before building MES-Vision collection
+7. either implement or trim the planned reporting and industrial surfaces
 
 ## Deployment Notes
 

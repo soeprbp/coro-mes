@@ -33,12 +33,12 @@ This is a migration gate, not the final identity model. Before production use, r
 
 ## Audit Logging
 
-The first audit foundation records equipment create/update/delete actions from both the Blazor admin page and the JSON API. It now also covers display definition create/update actions and UpKeep sync/downtime placeholder actions.
+The first audit foundation records equipment create/update/delete actions from both the Blazor admin page and the JSON API. It now also covers display definition create/update actions, UpKeep sync/downtime placeholder actions, and alarm create/acknowledge/resolve actions.
 
 - Entity: `AuditLog`
 - Storage: `ApplicationDbContext.AuditLogs`
 - Read endpoint: `GET /api/v1/audit`
-- Covered entities today: `Equipment`, `DisplayDefinition`, and first-pass `Upkeep` integration actions
+- Covered entities today: `Equipment`, `DisplayDefinition`, `AlarmEvent`, and first-pass `Upkeep` integration actions
 
 The next audit expansion should cover work orders, materials, operators, persisted settings changes, and any future i3X or industrial write paths.
 
@@ -46,7 +46,7 @@ The next audit expansion should cover work orders, materials, operators, persist
 
 `src/CoroMES.Web` now keeps startup small and routes behavior through focused modules:
 
-- `Endpoints/*Endpoints.cs` maps auth, compatibility redirects, audit, work orders, equipment, materials, operators, quality, UpKeep, and display endpoints.
+- `Endpoints/*Endpoints.cs` maps auth, compatibility redirects, audit, alarms, work orders, equipment, materials, operators, quality, UpKeep, and display endpoints.
 - `Startup/DatabaseStartupExtensions.cs` owns startup-time database safety checks and seed behavior for Blazor-host tables.
 - `Program.cs` stays responsible for service registration, middleware order, and calling the endpoint composition methods.
 
@@ -58,9 +58,10 @@ The team should move the Blazor fork forward in this order:
 
 1. Keep the auth and audit integration smoke suite green as a migration guardrail.
 2. Persist admin integration settings and feature flags with secret-safe storage.
-3. Build the first read-only MES-Vision collector using the aligned i3X client.
-4. Add UpKeep live asset-read compatibility once credentials and API details are available.
-5. Start moving endpoint behavior into application services where workflows are no longer simple CRUD.
+3. Replace guarded alerting send stubs with provider-specific adapters only after credentials, throttling, and escalation rules are reviewed.
+4. Build the first read-only MES-Vision collector using the aligned i3X client.
+5. Add UpKeep live asset-read compatibility once credentials and API details are available.
+6. Start moving endpoint behavior into application services where workflows are no longer simple CRUD.
 
 This order keeps Jane's security surface reviewable while Wash and River expand the host without burying business behavior inside the startup file.
 
@@ -71,6 +72,11 @@ The Blazor app should preserve the current API route contract while it replaces 
 ```text
 GET    /health
 GET    /api/v1/audit
+GET    /api/v1/alarms
+GET    /api/v1/alarms/{id}
+POST   /api/v1/alarms
+POST   /api/v1/alarms/{id}/acknowledge
+POST   /api/v1/alarms/{id}/resolve
 GET    /api/v1/workorders
 GET    /api/v1/workorders/{id}
 POST   /api/v1/workorders
@@ -117,6 +123,7 @@ Suggested forward mappings:
 |---------|----------------------|
 | `/admin` | `/admin` |
 | `/admin/` | `/admin` |
+| `/admin/alarms` | `/admin/alarms` |
 | `/displays/viewer.html` | `/displays/viewer` |
 | `/displays/builder.html` | `/displays/builder` |
 
@@ -141,4 +148,5 @@ Suggested forward mappings:
 - Equipment create/update/delete writes audit records.
 - Display definitions persist through `/api/v1/displays` and load in `/displays/viewer?id={slug}`.
 - UpKeep asset lookup, sync, and downtime calls go through `CoroMES.Integration.Upkeep` and write audit records.
+- Alarm create, acknowledge, and resolve calls persist `AlarmEvent` records, call `CoroMES.Integration.Alerts`, and write audit records.
 - `/displays/viewer?id=preview&type=oee` remains reachable without admin sign-in.

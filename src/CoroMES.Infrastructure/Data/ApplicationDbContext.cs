@@ -33,6 +33,9 @@ public class ApplicationDbContext : DbContext
     // Audit
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
+    // Alarms
+    public DbSet<AlarmEvent> AlarmEvents => Set<AlarmEvent>();
+
     // Displays
     public DbSet<DisplayDefinition> DisplayDefinitions => Set<DisplayDefinition>();
 
@@ -106,6 +109,21 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => new { e.EntityName, e.EntityId });
         });
 
+        modelBuilder.Entity<AlarmEvent>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Source).IsRequired().HasMaxLength(80);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(160);
+            entity.Property(e => e.Message).IsRequired().HasMaxLength(1000);
+            entity.Property(e => e.AlertChannels).HasMaxLength(300);
+            entity.Property(e => e.NotificationSummary).HasMaxLength(1000);
+            entity.Property(e => e.AcknowledgedBy).HasMaxLength(120);
+            entity.Property(e => e.ResolvedBy).HasMaxLength(120);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.Severity);
+            entity.HasIndex(e => e.TriggeredAtUtc);
+        });
+
         modelBuilder.Entity<WorkOrderOperation>()
             .HasOne(w => w.WorkOrder)
             .WithMany(w => w.Operations)
@@ -117,6 +135,12 @@ public class ApplicationDbContext : DbContext
             .WithMany(e => e.Maintenances)
             .HasForeignKey(e => e.EquipmentId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<AlarmEvent>()
+            .HasOne(e => e.Equipment)
+            .WithMany()
+            .HasForeignKey(e => e.EquipmentId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<DisplayDefinition>()
             .HasOne(d => d.Equipment)

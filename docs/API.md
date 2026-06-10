@@ -1,6 +1,6 @@
 # API Overview
 
-This document reflects the API surface that is actually implemented in `src/CoroMES.Api` today. In the Blazor fork, `src/CoroMES.Web` is the forward UI host, but it should preserve this backend route contract.
+This document reflects the API surface that is actually implemented in the Blazor-forward `src/CoroMES.Web` host and the compatibility `src/CoroMES.Api` host. The Blazor fork should preserve this backend route contract as UI screens move.
 
 ## Current Runtime Surface
 
@@ -67,6 +67,27 @@ Notes:
 - this endpoint is admin-protected in `CoroMES.Web`
 - returns recent audit records newest first
 - first-pass audit coverage records equipment create/update/delete, display definition create/update, and UpKeep sync/downtime actions
+
+### Alarms
+
+```text
+GET  /api/v1/alarms
+GET  /api/v1/alarms?status=Active&take=100
+GET  /api/v1/alarms/{id}
+POST /api/v1/alarms
+POST /api/v1/alarms/{id}/acknowledge
+POST /api/v1/alarms/{id}/resolve
+```
+
+Notes:
+
+- these endpoints are admin-protected in `CoroMES.Web`
+- alarm events persist in `ApplicationDbContext.AlarmEvents`
+- create accepts title, message, severity, source, optional equipment id, and optional alert channel list
+- alert dispatch goes through `CoroMES.Integration.Alerts`
+- local default mode is mock; critical alarms default to email, SMS, Pushover, and UpKeep channels
+- live alert dispatch is guarded and returns blocked results until provider credentials, send contracts, throttling, and operator escalation rules are configured
+- create, acknowledge, and resolve actions write audit records
 
 ### Materials
 

@@ -45,6 +45,7 @@
 - [x] Expand audit logging to display definitions and UpKeep sync/downtime placeholders
 - [x] Add admin settings scaffold for integration endpoints and feature flags
 - [x] Move UpKeep asset matching behind a dedicated mock/disabled/live integration boundary
+- [x] Add first alarm lifecycle and guarded alerting boundary for email, SMS, Pushover, and UpKeep channels
 - [ ] Replace static admin pages with Blazor routes while preserving `/admin` compatibility
 - [ ] Replace static display viewer and builder pages with Blazor routes while preserving `/displays/viewer.html` and `/displays/builder.html` redirects
 - [ ] Keep Blazor screens aligned with current API route parity in `docs/API.md`
@@ -57,6 +58,7 @@
 - [ ] Add admin mapping for MES-Vision cameras/zones to CoroMES equipment
 - [ ] Add dashboard/reporting widgets for vision-derived runtime, idle time, camera health, and zone activity
 - [ ] Replace guarded UpKeep live-write stubs with confirmed live API calls after credentials/API contract are available
+- [ ] Replace guarded alerting stubs with confirmed provider adapters after credentials, throttling, and escalation rules are reviewed
 - [ ] Replace temporary admin access-code gate with the chosen enterprise identity model
 - [ ] Expand audit logging beyond equipment, display, and UpKeep boundary mutations
 - [ ] Expand inventory, workforce, and quality write workflows
@@ -65,7 +67,7 @@
 
 - [x] Unit test CTI ingestion components
 - [x] Unit test i3X client behavior
-- [ ] Add API integration tests
+- [x] Add API integration tests for the current Blazor migration smoke surface
 - [x] Keep Blazor auth and audit integration tests running as the migration smoke suite
 - [ ] Add persistence-mode coverage for SQLite and PostgreSQL
 - [ ] Add CTI end-to-end ingestion tests with representative sample files
@@ -85,7 +87,8 @@
 2. Turn the CTI framework into a runnable connector host
 3. Keep the Blazor auth/audit/display integration tests green
 4. Persist admin integration settings and feature flags with secret-safe storage
-5. Build the first read-only MES-Vision collector using i3X discovery, value polling, and history polling
-6. Add MES-Vision compatibility coverage against the running i3X endpoint once the target update settles
-7. Confirm UpKeep live API details and replace guarded live-write stubs
-8. Start either implementing or pruning the reporting and industrial surfaces promised by older docs
+5. Define alert escalation rules and provider credentials before enabling live email/SMS/Pushover/UpKeep sends
+6. Build the first read-only MES-Vision collector using i3X discovery, value polling, and history polling
+7. Add MES-Vision compatibility coverage against the running i3X endpoint once the target update settles
+8. Confirm UpKeep live API details and replace guarded live-write stubs
+9. Start either implementing or pruning the reporting and industrial surfaces promised by older docs

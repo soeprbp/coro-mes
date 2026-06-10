@@ -370,7 +370,8 @@ th {
 
 .activity-list,
 .display-list,
-.settings-list {
+.settings-list,
+.alarm-list {
     display: grid;
     gap: 10px;
 }
@@ -396,6 +397,37 @@ th {
 .asset-card {
     display: grid;
     gap: 5px;
+}
+
+.alarm-card {
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-left-width: 4px;
+    border-radius: 6px;
+    background: #ffffff;
+}
+
+.alarm-card h3,
+.alarm-card p {
+    margin: 0;
+}
+
+.alarm-card.bad {
+    border-left-color: var(--bad);
+}
+
+.alarm-card.warn {
+    border-left-color: var(--warn);
+}
+
+.alarm-card.neutral {
+    border-left-color: var(--muted);
+}
+
+.channel-list {
+    margin-top: 12px;
 }
 
 .notice {

@@ -168,6 +168,64 @@ public class BlazorHostAuthAndAuditTests
         Assert.Contains(audit!, log => log.Action == "Sync" && log.Succeeded);
     }
 
+    [Fact]
+    public async Task Alarm_lifecycle_persists_alert_summary_and_audit_records()
+    {
+        using var factory = new CoroMesWebFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            HandleCookies = true
+        });
+
+        await SignInAsync(client);
+
+        var create = await client.PostAsJsonAsync("/api/v1/alarms", new
+        {
+            title = "Integration test alarm",
+            message = "Verifies mock dispatch and alarm lifecycle.",
+            severity = AlarmSeverity.Critical,
+            source = "integration-test",
+            equipmentId = (int?)null,
+            channels = new[] { "email", "sms", "pushover", "upkeep" }
+        });
+
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+
+        var created = await create.Content.ReadFromJsonAsync<AlarmDto>(JsonOptions);
+        Assert.NotNull(created);
+        Assert.True(created!.Id > 0);
+        Assert.Equal("Critical", created.Severity);
+        Assert.Equal("Active", created.Status);
+        Assert.Equal("email,sms,pushover,upkeep", created.AlertChannels);
+        Assert.Contains("email:ok", created.NotificationSummary);
+        Assert.Contains("upkeep:ok", created.NotificationSummary);
+
+        var fetched = await client.GetFromJsonAsync<AlarmDto>($"/api/v1/alarms/{created.Id}", JsonOptions);
+        Assert.NotNull(fetched);
+        Assert.Equal(created.Id, fetched!.Id);
+
+        var alarms = await client.GetFromJsonAsync<AlarmDto[]>("/api/v1/alarms?status=Active&take=10", JsonOptions);
+        Assert.NotNull(alarms);
+        Assert.Contains(alarms!, alarm => alarm.Id == created.Id);
+
+        var acknowledge = await client.PostAsync($"/api/v1/alarms/{created.Id}/acknowledge", null);
+        Assert.Equal(HttpStatusCode.OK, acknowledge.StatusCode);
+        var acknowledged = await acknowledge.Content.ReadFromJsonAsync<AlarmDto>(JsonOptions);
+        Assert.Equal("Acknowledged", acknowledged?.Status);
+
+        var resolve = await client.PostAsync($"/api/v1/alarms/{created.Id}/resolve", null);
+        Assert.Equal(HttpStatusCode.OK, resolve.StatusCode);
+        var resolved = await resolve.Content.ReadFromJsonAsync<AlarmDto>(JsonOptions);
+        Assert.Equal("Resolved", resolved?.Status);
+
+        var audit = await client.GetFromJsonAsync<AuditLogDto[]>("/api/v1/audit?entityName=AlarmEvent&take=10", JsonOptions);
+        Assert.NotNull(audit);
+        Assert.Contains(audit!, log => log.Action == "Create" && log.EntityId == created.Id && log.Succeeded);
+        Assert.Contains(audit!, log => log.Action == "Acknowledge" && log.EntityId == created.Id && log.Succeeded);
+        Assert.Contains(audit!, log => log.Action == "Resolve" && log.EntityId == created.Id && log.Succeeded);
+    }
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private static Task<HttpResponseMessage> SignInAsync(HttpClient client)
@@ -212,6 +270,15 @@ public class BlazorHostAuthAndAuditTests
         public string Mode { get; set; } = string.Empty;
     }
 
+    private sealed class AlarmDto
+    {
+        public int Id { get; set; }
+        public string Severity { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string? AlertChannels { get; set; }
+        public string NotificationSummary { get; set; } = string.Empty;
+    }
+
     private sealed class CoroMesWebFactory : WebApplicationFactory<Program>
     {
         public const string AdminAccessCode = "test-admin";
@@ -229,7 +296,12 @@ public class BlazorHostAuthAndAuditTests
                     ["ConnectionStrings:DefaultConnection"] = $"Data Source={dbPath}",
                     ["Auth:AdminAccessCode"] = AdminAccessCode,
                     ["i3x:enabled"] = "false",
-                    ["Upkeep:Mode"] = "mock"
+                    ["Upkeep:Mode"] = "mock",
+                    ["Alerting:Mode"] = "mock",
+                    ["Alerting:CriticalChannels:0"] = "email",
+                    ["Alerting:CriticalChannels:1"] = "sms",
+                    ["Alerting:CriticalChannels:2"] = "pushover",
+                    ["Alerting:CriticalChannels:3"] = "upkeep"
                 });
             });
         }

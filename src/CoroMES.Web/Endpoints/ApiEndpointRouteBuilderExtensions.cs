@@ -7,6 +7,7 @@ public static class ApiEndpointRouteBuilderExtensions
         var api = app.MapGroup("/api/v1").RequireAuthorization("AdminOnly");
 
         api.MapAuditEndpoints();
+        api.MapAlarmEndpoints();
         api.MapWorkOrderEndpoints();
         api.MapEquipmentEndpoints();
         api.MapUpkeepEndpoints();

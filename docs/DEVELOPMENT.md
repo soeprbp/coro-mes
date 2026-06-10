@@ -138,6 +138,23 @@ $env:Upkeep__ApiKey = "<set-a-real-local-secret>"
 
 Do not enter UpKeep credentials in the Blazor settings scaffold. Use environment variables, user secrets, or deployment configuration.
 
+### Alerting Modes
+
+The Blazor host registers `CoroMES.Integration.Alerts` through `AddAlertingIntegration`.
+
+```powershell
+$env:Alerting__Mode = "mock"      # default local mode
+$env:Alerting__Mode = "disabled"  # persist alarms without outbound notifications
+$env:Alerting__Mode = "live"      # guarded until provider send contracts are configured
+$env:Alerting__DefaultChannels__0 = "email"
+$env:Alerting__CriticalChannels__0 = "email"
+$env:Alerting__CriticalChannels__1 = "sms"
+$env:Alerting__CriticalChannels__2 = "pushover"
+$env:Alerting__CriticalChannels__3 = "upkeep"
+```
+
+Do not enter notification provider credentials in the Blazor settings scaffold. Use environment variables, user secrets, or deployment configuration. Live email, SMS, Pushover, and UpKeep dispatch should stay blocked until credentials, throttling, audit expectations, and escalation rules are explicitly reviewed.
+
 ### 1. Create Entity (Core)
 
 ```csharp

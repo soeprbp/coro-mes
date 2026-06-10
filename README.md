@@ -21,6 +21,7 @@ As of June 2026, the repository is beyond initial scaffolding but not yet a comp
 - the API supports foundational endpoints for work orders, equipment, materials, operators, quality, UpKeep integration, and display configs
 - the Blazor host now maps API parity through focused endpoint modules instead of a large startup file
 - display builder definitions are persisted and loaded by the Blazor viewer
+- alarm events now persist in the Blazor host, with a guarded alerting boundary for email, SMS, Pushover, and UpKeep notification paths
 - persistence currently defaults to SQLite for local development
 - PostgreSQL remains the intended production database path
 - i3X support exists behind configuration and can swap repository implementations
@@ -47,9 +48,10 @@ modules/
 └── CoroMES.Workforce
 
 integration/
+├── CoroMES.Integration.Alerts       # Active guarded alerting boundary
 ├── CoroMES.Integration.Cti          # Active CTI/EPS ingestion framework
 ├── CoroMES.Integration.TrueCommerce # Planned EDI integration boundary
-├── CoroMES.Integration.Upkeep       # Planned CMMS integration boundary
+├── CoroMES.Integration.Upkeep       # Active CMMS integration boundary
 └── CoroMES.Integration.IIoT         # Planned IIoT integration boundary
 
 industrial/
@@ -99,7 +101,7 @@ By default, the app uses the SQLite connection string in `src/CoroMES.Api/appset
 dotnet test CoroMES.sln
 ```
 
-Unit tests currently cover the CTI ingestion framework and i3X client behavior. Integration tests cover the Blazor host auth gate, equipment audit writes, persisted display definitions, and UpKeep sync audit logging.
+Unit tests currently cover the CTI ingestion framework and i3X client behavior. Integration tests cover the Blazor host auth gate, equipment audit writes, persisted display definitions, UpKeep sync audit logging, and the alarm lifecycle.
 
 ## Documentation
 

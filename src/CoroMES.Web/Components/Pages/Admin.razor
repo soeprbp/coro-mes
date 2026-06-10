@@ -1,12 +1,15 @@
 @page "/admin"
 @page "/admin/equipment"
 @page "/admin/upkeep"
+@page "/admin/alarms"
 @page "/admin/protocols"
 @page "/admin/settings"
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = "AdminOnly")]
 @inject IEquipmentRepository EquipmentRepository
 @inject IUpkeepIntegration UpkeepIntegration
+@inject IAlarmService AlarmService
+@inject IAlertDispatcher AlertDispatcher
 @inject IAuditLogService AuditLog
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
@@ -18,6 +21,7 @@
             <a class="@NavClass("dashboard")" href="/admin">Dashboard</a>
             <a class="@NavClass("equipment")" href="/admin/equipment">Equipment</a>
             <a class="@NavClass("upkeep")" href="/admin/upkeep">Upkeep Sync</a>
+            <a class="@NavClass("alarms")" href="/admin/alarms">Alarms</a>
             <a class="@NavClass("protocols")" href="/admin/protocols">Protocols</a>
             <a class="@NavClass("settings")" href="/admin/settings">Settings</a>
             <a href="/logout">Sign Out</a>
@@ -37,6 +41,7 @@
                 <article class="metric"><span>Running</span><strong>@equipment.Count(e => e.Status == EquipmentStatus.Running)</strong></article>
                 <article class="metric"><span>Down</span><strong>@equipment.Count(e => e.Status == EquipmentStatus.Down)</strong></article>
                 <article class="metric"><span>Linked to Upkeep</span><strong>@equipment.Count(e => e.UpkeepAssetId.HasValue)</strong></article>
+                <article class="metric"><span>Active Alarms</span><strong>@alarms.Count(a => a.Status == AlarmStatus.Active)</strong></article>
             </section>
 
             <section class="panel">
@@ -217,6 +222,107 @@
                 <p class="notice">@syncStatus</p>
             </section>
         }
+        else if (section == "alarms")
+        {
+            <header class="page-header">
+                <div><p class="eyebrow">Alerts</p><h1>Alarms</h1></div>
+                <button class="button primary" @onclick="RaiseAlarm">Raise Alarm</button>
+            </header>
+
+            <section class="split-layout wide-form">
+                <div class="panel">
+                    <div class="panel-title"><h2>New Alarm</h2><span class="pill neutral">@AlertDispatcher.Mode</span></div>
+                    <div class="form-grid">
+                        <label>Title <input @bind="alarmDraft.Title" /></label>
+                        <label>
+                            Severity
+                            <select @bind="alarmDraft.Severity">
+                                @foreach (var value in Enum.GetValues<AlarmSeverity>())
+                                {
+                                    <option value="@value">@value</option>
+                                }
+                            </select>
+                        </label>
+                        <label>
+                            Equipment
+                            <select @bind="alarmDraft.EquipmentId">
+                                <option value="">None</option>
+                                @foreach (var item in equipment)
+                                {
+                                    <option value="@item.Id">@item.Code - @item.Name</option>
+                                }
+                            </select>
+                        </label>
+                        <label>Source <input @bind="alarmDraft.Source" /></label>
+                    </div>
+                    <label>Message <textarea @bind="alarmDraft.Message" rows="4"></textarea></label>
+
+                    <div class="settings-list channel-list">
+                        @foreach (var channel in alarmChannels)
+                        {
+                            <label class="toggle-row">
+                                <span>
+                                    <strong>@channel.Label</strong>
+                                    <small>@channel.Description</small>
+                                </span>
+                                <input type="checkbox" @bind="channel.Enabled" />
+                            </label>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(alarmMessage))
+                    {
+                        <p class="notice">@alarmMessage</p>
+                    }
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title">
+                        <h2>Recent Alarms</h2>
+                        <button class="button icon" title="Refresh" @onclick="LoadAlarms">Refresh</button>
+                    </div>
+                    <div class="alarm-list">
+                        @if (alarms.Count == 0)
+                        {
+                            <p class="muted">No alarms have been raised yet.</p>
+                        }
+                        else
+                        {
+                            @foreach (var alarm in alarms)
+                            {
+                                <article class="alarm-card @AlarmSeverityClass(alarm.Severity)">
+                                    <div>
+                                        <span class="pill @AlarmSeverityClass(alarm.Severity)">@alarm.Severity</span>
+                                        <span class="pill @AlarmStatusClass(alarm.Status)">@alarm.Status</span>
+                                    </div>
+                                    <h3>@alarm.Title</h3>
+                                    <p>@alarm.Message</p>
+                                    <small>@alarm.Source - @alarm.TriggeredAtUtc.ToLocalTime():g</small>
+                                    @if (!string.IsNullOrWhiteSpace(alarm.AlertChannels))
+                                    {
+                                        <code>@alarm.AlertChannels</code>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(alarm.NotificationSummary))
+                                    {
+                                        <small>@alarm.NotificationSummary</small>
+                                    }
+                                    <div class="row-actions">
+                                        @if (alarm.Status == AlarmStatus.Active)
+                                        {
+                                            <button class="button small" @onclick="() => AcknowledgeAlarm(alarm.Id)">Acknowledge</button>
+                                        }
+                                        @if (alarm.Status != AlarmStatus.Resolved)
+                                        {
+                                            <button class="button small" @onclick="() => ResolveAlarm(alarm.Id)">Resolve</button>
+                                        }
+                                    </div>
+                                </article>
+                            }
+                        }
+                    </div>
+                </div>
+            </section>
+        }
         else if (section == "protocols")
         {
             <header class="page-header">
@@ -312,21 +418,32 @@
     [
         new("Blazor display persistence", "Save shop-floor display definitions in CoroMES.", true),
         new("MES-Vision collector", "Enable the future read-only vision telemetry collector.", false),
+        new("Alarm alerting", "Route alarm events to configured notification channels.", true),
         new("i3X repository mode", "Use i3X-backed repositories instead of EF-backed repositories.", false),
         new("Enterprise identity", "Replace the migration access-code gate.", false)
     ];
 
     private List<Equipment> equipment = [];
     private List<UpkeepAsset> upkeepAssets = [];
+    private List<AlarmEvent> alarms = [];
     private Equipment form = new();
+    private AlarmDraft alarmDraft = new();
     private int? editingId;
     private string section = "dashboard";
     private string? message;
     private string syncStatus = "Last sync: Never";
     private string? protocolMessage;
     private string? settingsMessage;
+    private string? alarmMessage;
     private string upkeepSearch = string.Empty;
     private UpkeepAsset? selectedUpkeepAsset => GetUpkeepAsset(form.UpkeepAssetId);
+    private readonly List<AlertChannelDraft> alarmChannels =
+    [
+        new("email", "Email", "Maintenance and production inboxes.", true),
+        new("sms", "SMS", "Critical phone escalation.", false),
+        new("pushover", "Pushover", "Mobile push notification.", false),
+        new("upkeep", "UpKeep", "Create or update a CMMS event.", false)
+    ];
 
     private IEnumerable<UpkeepAsset> SuggestedUpkeepAssets
     {
@@ -373,6 +490,7 @@
         section = ResolveSection();
         upkeepAssets = (await UpkeepIntegration.GetAssetsAsync()).ToList();
         await LoadEquipment();
+        await LoadAlarms();
     }
 
     protected override void OnParametersSet()
@@ -387,6 +505,7 @@
         {
             "admin/equipment" => "equipment",
             "admin/upkeep" => "upkeep",
+            "admin/alarms" => "alarms",
             "admin/protocols" => "protocols",
             "admin/settings" => "settings",
             _ => "dashboard"
@@ -409,6 +528,11 @@
     private async Task LoadEquipment()
     {
         equipment = (await EquipmentRepository.GetAllAsync()).OrderBy(item => item.Code).ToList();
+    }
+
+    private async Task LoadAlarms()
+    {
+        alarms = (await AlarmService.GetRecentAsync(take: 50)).ToList();
     }
 
     private void NewEquipment()
@@ -583,6 +707,76 @@
         syncStatus = $"Last sync: {result.TimestampUtc.ToLocalTime():g}. Mode: {result.Mode}. Linked assets: {result.Synced}. {result.Message}";
     }
 
+    private async Task RaiseAlarm()
+    {
+        if (string.IsNullOrWhiteSpace(alarmDraft.Title) || string.IsNullOrWhiteSpace(alarmDraft.Message))
+        {
+            alarmMessage = "Title and message are required.";
+            return;
+        }
+
+        var channels = alarmChannels
+            .Where(channel => channel.Enabled)
+            .Select(channel => channel.Id)
+            .ToList();
+
+        var alarm = await AlarmService.RaiseAsync(new AlarmCreateRequest(
+            alarmDraft.Title,
+            alarmDraft.Message,
+            alarmDraft.Severity,
+            alarmDraft.Source,
+            alarmDraft.EquipmentId,
+            channels), await GetCurrentActorAsync());
+
+        await AuditLog.RecordAsync(null, new AuditLogEntry(
+            "Create",
+            nameof(AlarmEvent),
+            alarm.Id,
+            $"Severity={alarm.Severity}; Source={alarm.Source}; Channels={alarm.AlertChannels ?? "none"}",
+            Actor: await GetCurrentActorAsync(),
+            Route: "/admin/alarms"));
+
+        alarmMessage = $"Alarm {alarm.Id} raised. {alarm.NotificationSummary}";
+        alarmDraft = new();
+        await LoadAlarms();
+    }
+
+    private async Task AcknowledgeAlarm(int id)
+    {
+        var actor = await GetCurrentActorAsync();
+        var alarm = await AlarmService.AcknowledgeAsync(id, actor);
+        if (alarm is not null)
+        {
+            await AuditLog.RecordAsync(null, new AuditLogEntry(
+                "Acknowledge",
+                nameof(AlarmEvent),
+                alarm.Id,
+                $"Alarm acknowledged by {actor}.",
+                Actor: actor,
+                Route: "/admin/alarms"));
+        }
+
+        await LoadAlarms();
+    }
+
+    private async Task ResolveAlarm(int id)
+    {
+        var actor = await GetCurrentActorAsync();
+        var alarm = await AlarmService.ResolveAsync(id, actor);
+        if (alarm is not null)
+        {
+            await AuditLog.RecordAsync(null, new AuditLogEntry(
+                "Resolve",
+                nameof(AlarmEvent),
+                alarm.Id,
+                $"Alarm resolved by {actor}.",
+                Actor: actor,
+                Route: "/admin/alarms"));
+        }
+
+        await LoadAlarms();
+    }
+
     private void SaveProtocolSettings()
     {
         protocolMessage = $"Protocol settings saved at {DateTime.Now:t}.";
@@ -609,6 +803,21 @@
         return $"Code={item.Code}; Name={item.Name}; Status={item.Status}; Location={item.Location ?? "n/a"}; UpKeepAssetId={item.UpkeepAssetId?.ToString() ?? "none"}";
     }
 
+    private static string AlarmSeverityClass(AlarmSeverity severity) => severity switch
+    {
+        AlarmSeverity.Critical => "bad",
+        AlarmSeverity.Warning => "warn",
+        _ => "neutral"
+    };
+
+    private static string AlarmStatusClass(AlarmStatus status) => status switch
+    {
+        AlarmStatus.Active => "bad",
+        AlarmStatus.Acknowledged => "warn",
+        AlarmStatus.Resolved => "good",
+        _ => "neutral"
+    };
+
     private sealed class ProtocolSetting(string name, bool enabled, string host, int port)
     {
         public string Name { get; } = name;
@@ -628,6 +837,23 @@
     private sealed class FeatureFlagSetting(string name, string description, bool enabled)
     {
         public string Name { get; } = name;
+        public string Description { get; } = description;
+        public bool Enabled { get; set; } = enabled;
+    }
+
+    private sealed class AlarmDraft
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public AlarmSeverity Severity { get; set; } = AlarmSeverity.Warning;
+        public string Source { get; set; } = "manual";
+        public int? EquipmentId { get; set; }
+    }
+
+    private sealed class AlertChannelDraft(string id, string label, string description, bool enabled)
+    {
+        public string Id { get; } = id;
+        public string Label { get; } = label;
         public string Description { get; } = description;
         public bool Enabled { get; set; } = enabled;
     }

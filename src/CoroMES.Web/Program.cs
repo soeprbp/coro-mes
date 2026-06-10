@@ -1,5 +1,6 @@
 using CoroMES.Core.Interfaces.Repositories;
 using CoroMES.Industrial.i3X;
+using CoroMES.Integration.Alerts;
 using CoroMES.Integration.Upkeep;
 using CoroMES.Infrastructure.Data;
 using CoroMES.Infrastructure.Repositories;
@@ -54,8 +55,10 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
 });
 
+builder.Services.AddAlertingIntegration(builder.Configuration);
 builder.Services.AddUpkeepIntegration(builder.Configuration);
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<IAlarmService, AlarmService>();
 
 var dbProvider = builder.Configuration.GetValue<string>("DatabaseProvider") ?? "sqlite";
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
