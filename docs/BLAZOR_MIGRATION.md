@@ -20,6 +20,17 @@ Use the preservation branch/tag and backup zip as the reference point for the pr
 - `src/CoroMES.Api` remains the backend API host and source of truth for implemented HTTP route behavior.
 - Shared domain, persistence, CTI, i3X, and integration boundaries remain in the existing projects unless a future migration deliberately moves them.
 
+## First Auth Gate
+
+The Blazor forward host now uses ASP.NET Core cookie authentication as the first admin safety gate.
+
+- Anonymous: `/health`, `/login`, `/access-denied`, `/displays/viewer`, `/displays/viewer.html`, static assets, not-found/error handling.
+- Admin-required: `/admin`, `/admin/*`, `/displays`, `/displays/builder`, `/api/v1/*`.
+- Development fallback access code: `dev-admin` when `Auth:AdminAccessCode` is not configured.
+- Production/admin override: set `Auth__AdminAccessCode` through environment variables, user secrets, or deployment configuration. Do not commit real access codes.
+
+This is a migration gate, not the final identity model. Before production use, replace or extend it with the chosen plant/user identity provider, stronger role mapping, audit logging for mutations, and a CSRF strategy for any browser-called JSON mutation endpoints.
+
 ## API Route Parity
 
 The Blazor app should preserve the current API route contract while it replaces static pages. Existing route families remain the compatibility target:
@@ -87,4 +98,7 @@ Suggested forward mappings:
 - `src/CoroMES.Web` starts locally as the forward UI host.
 - `src/CoroMES.Api` still exposes the documented API route set.
 - Old static URLs redirect or remain compatible.
-- Admin and display workflows remain reachable through Blazor routes.
+- Anonymous requests to `/admin/equipment` redirect to `/login`.
+- Anonymous requests to `/api/v1/equipment` return `401`.
+- Signed-in admin requests can reach `/admin/equipment` and `/api/v1/equipment`.
+- `/displays/viewer?id=preview&type=oee` remains reachable without admin sign-in.

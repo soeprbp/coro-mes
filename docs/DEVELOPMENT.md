@@ -75,7 +75,26 @@ dotnet run --project src/CoroMES.Web
 
 `src/CoroMES.Web` is the forward UI host for admin and shop-floor display workflows. `src/CoroMES.Api` remains the backend API host and route contract source of truth.
 
-### 6. Access Swagger
+### 6. Sign In To Admin
+
+The Blazor host protects `/admin`, `/displays/builder`, and `/api/v1/*` with the first cookie-based admin gate.
+
+For local development, use the fallback access code:
+
+```text
+dev-admin
+```
+
+For shared or production-like environments, set an access code through configuration instead of committing one:
+
+```powershell
+$env:Auth__AdminAccessCode = "<set-a-real-local-secret>"
+dotnet run --project src/CoroMES.Web
+```
+
+Shop-floor viewer routes such as `/displays/viewer?id=preview&type=oee` remain anonymous during migration.
+
+### 7. Access Swagger
 
 Visit: http://localhost:5000/swagger
 

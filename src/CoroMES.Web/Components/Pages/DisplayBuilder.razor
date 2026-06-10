@@ -1,6 +1,7 @@
 @page "/displays"
 @page "/displays/builder"
 @rendermode InteractiveServer
+@attribute [Authorize(Policy = "AdminOnly")]
 @inject IEquipmentRepository EquipmentRepository
 
 <div class="display-admin">

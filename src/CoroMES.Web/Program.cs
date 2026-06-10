@@ -6,12 +6,53 @@ using CoroMES.Infrastructure.Repositories;
 using CoroMES.Infrastructure.Repositories.i3x;
 using CoroMES.Web.Components;
 using CoroMES.Web.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using System.Text.Encodings.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/login";
+        options.AccessDeniedPath = "/access-denied";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Events.OnRedirectToLogin = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api"))
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            }
+
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api"))
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return Task.CompletedTask;
+            }
+
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+    });
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+});
 
 builder.Services.AddSingleton<IUpkeepAssetCatalog, UpkeepAssetCatalog>();
 
@@ -107,7 +148,111 @@ using (var scope = app.Services.CreateScope())
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
+
+app.Use(async (context, next) =>
+{
+    if (RequiresAdminGate(context.Request.Path) && context.User.Identity?.IsAuthenticated != true)
+    {
+        await context.ChallengeAsync();
+        return;
+    }
+
+    await next();
+});
+
+app.MapGet("/login", (HttpContext context, IWebHostEnvironment environment, IConfiguration configuration) =>
+{
+    var returnUrl = GetSafeReturnUrl(context.Request.Query["returnUrl"].ToString());
+    var error = context.Request.Query.ContainsKey("error");
+    var devHint = environment.IsDevelopment() && string.IsNullOrWhiteSpace(configuration["Auth:AdminAccessCode"])
+        ? "<p class=\"hint\">Development access code: <code>dev-admin</code></p>"
+        : string.Empty;
+    var errorHtml = error ? "<p class=\"error\">Access code was not accepted.</p>" : string.Empty;
+    var encodedReturnUrl = HtmlEncoder.Default.Encode(returnUrl);
+
+    return Results.Content($$"""
+        <!doctype html>
+        <html lang="en">
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>CoroMES Admin Sign In</title>
+            <style>
+                body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f5f7fa; color: #17202a; font-family: Segoe UI, Arial, sans-serif; }
+                main { width: min(420px, calc(100vw - 32px)); padding: 28px; border: 1px solid #d9e0e8; border-radius: 8px; background: #fff; }
+                h1 { margin: 0 0 8px; font-size: 1.45rem; }
+                p { color: #607080; }
+                label { display: grid; gap: 8px; margin-top: 18px; color: #607080; font-size: .9rem; }
+                input { padding: 10px 12px; border: 1px solid #d9e0e8; border-radius: 6px; font: inherit; }
+                button { width: 100%; margin-top: 18px; padding: 10px 12px; border: 1px solid #176b87; border-radius: 6px; background: #176b87; color: #fff; font: inherit; cursor: pointer; }
+                .error { color: #b42318; font-weight: 700; }
+                .hint code { color: #17202a; }
+            </style>
+        </head>
+        <body>
+            <main>
+                <h1>CoroMES Admin</h1>
+                <p>Sign in to manage equipment, integrations, and MES records.</p>
+                {{errorHtml}}
+                {{devHint}}
+                <form method="post" action="/login">
+                    <input type="hidden" name="returnUrl" value="{{encodedReturnUrl}}" />
+                    <label>Access code <input name="accessCode" type="password" autocomplete="current-password" required autofocus /></label>
+                    <button type="submit">Sign In</button>
+                </form>
+            </main>
+        </body>
+        </html>
+        """, "text/html");
+}).AllowAnonymous();
+
+app.MapPost("/login", async (HttpContext context, IWebHostEnvironment environment, IConfiguration configuration) =>
+{
+    var form = await context.Request.ReadFormAsync();
+    var returnUrl = GetSafeReturnUrl(form["returnUrl"].ToString());
+    var accessCode = form["accessCode"].ToString();
+    var configuredAccessCode = configuration["Auth:AdminAccessCode"];
+    var expectedAccessCode = !string.IsNullOrWhiteSpace(configuredAccessCode)
+        ? configuredAccessCode
+        : environment.IsDevelopment() ? "dev-admin" : null;
+
+    if (string.IsNullOrWhiteSpace(expectedAccessCode) || !TimeSafeEquals(accessCode, expectedAccessCode))
+    {
+        return Results.Redirect($"/login?error=1&returnUrl={Uri.EscapeDataString(returnUrl)}");
+    }
+
+    var claims = new[]
+    {
+        new Claim(ClaimTypes.Name, "CoroMES Admin"),
+        new Claim(ClaimTypes.Role, "Admin")
+    };
+    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+    var principal = new ClaimsPrincipal(identity);
+
+    await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+    return Results.Redirect(returnUrl);
+}).AllowAnonymous();
+
+app.MapGet("/logout", async (HttpContext context) =>
+{
+    await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    return Results.Redirect("/login");
+});
+
+app.MapGet("/access-denied", () => Results.Content("""
+    <!doctype html>
+    <html lang="en">
+    <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Access Denied</title></head>
+    <body style="font-family: Segoe UI, Arial, sans-serif; margin: 40px;">
+        <h1>Access denied</h1>
+        <p>Your account does not have permission to view this CoroMES area.</p>
+        <a href="/login">Sign in again</a>
+    </body>
+    </html>
+    """, "text/html")).AllowAnonymous();
 
 app.MapGet("/admin/index.html", () => Results.Redirect("/admin", permanent: false));
 app.MapGet("/displays/builder.html", () => Results.Redirect("/displays/builder", permanent: false));
@@ -128,9 +273,40 @@ app.MapRazorComponents<App>()
 
 app.Run();
 
+static string GetSafeReturnUrl(string? returnUrl)
+{
+    if (string.IsNullOrWhiteSpace(returnUrl) || !returnUrl.StartsWith("/", StringComparison.Ordinal) || returnUrl.StartsWith("//", StringComparison.Ordinal))
+    {
+        return "/admin";
+    }
+
+    return returnUrl;
+}
+
+static bool TimeSafeEquals(string candidate, string expected)
+{
+    var candidateBytes = System.Text.Encoding.UTF8.GetBytes(candidate);
+    var expectedBytes = System.Text.Encoding.UTF8.GetBytes(expected);
+    if (candidateBytes.Length != expectedBytes.Length)
+    {
+        return false;
+    }
+
+    return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(candidateBytes, expectedBytes);
+}
+
+static bool RequiresAdminGate(PathString path)
+{
+    return path.StartsWithSegments("/admin") ||
+        string.Equals(path.Value, "/displays", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWithSegments("/displays/builder");
+}
+
 static void MapApiRoutes(WebApplication app)
 {
-    app.MapGet("/api/v1/workorders", async (IWorkOrderRepository workOrderRepo) =>
+    var api = app.MapGroup("/api/v1").RequireAuthorization("AdminOnly");
+
+    api.MapGet("/workorders", async (IWorkOrderRepository workOrderRepo) =>
     {
         var workOrders = await workOrderRepo.GetAllAsync();
         return Results.Ok(workOrders.Take(100));
@@ -138,7 +314,7 @@ static void MapApiRoutes(WebApplication app)
     .WithName("GetWorkOrders")
     .WithTags("WorkOrders");
 
-    app.MapGet("/api/v1/workorders/{id}", async (int id, IWorkOrderRepository workOrderRepo) =>
+    api.MapGet("/workorders/{id}", async (int id, IWorkOrderRepository workOrderRepo) =>
     {
         var workOrder = await workOrderRepo.GetByIdAsync(id);
         return workOrder is null ? Results.NotFound() : Results.Ok(workOrder);
@@ -146,7 +322,7 @@ static void MapApiRoutes(WebApplication app)
     .WithName("GetWorkOrder")
     .WithTags("WorkOrders");
 
-    app.MapPost("/api/v1/workorders", async (WorkOrder workOrder, IWorkOrderRepository workOrderRepo) =>
+    api.MapPost("/workorders", async (WorkOrder workOrder, IWorkOrderRepository workOrderRepo) =>
     {
         workOrder.CreatedAt = DateTime.UtcNow;
         workOrder.Number = $"WO-{DateTime.UtcNow:yyyyMMddHHmmss}";
@@ -156,7 +332,7 @@ static void MapApiRoutes(WebApplication app)
     .WithName("CreateWorkOrder")
     .WithTags("WorkOrders");
 
-    app.MapGet("/api/v1/equipment", async (IEquipmentRepository equipmentRepo) =>
+    api.MapGet("/equipment", async (IEquipmentRepository equipmentRepo) =>
     {
         var equipment = await equipmentRepo.GetAllAsync();
         return Results.Ok(equipment.Take(100));
@@ -164,7 +340,7 @@ static void MapApiRoutes(WebApplication app)
     .WithName("GetEquipment")
     .WithTags("Equipment");
 
-    app.MapGet("/api/v1/equipment/{id}", async (int id, IEquipmentRepository equipmentRepo) =>
+    api.MapGet("/equipment/{id}", async (int id, IEquipmentRepository equipmentRepo) =>
     {
         var equipment = await equipmentRepo.GetByIdAsync(id);
         return equipment is null ? Results.NotFound() : Results.Ok(equipment);
@@ -172,7 +348,7 @@ static void MapApiRoutes(WebApplication app)
     .WithName("GetEquipmentById")
     .WithTags("Equipment");
 
-    app.MapPost("/api/v1/equipment", async (Equipment equipment, IEquipmentRepository equipmentRepo) =>
+    api.MapPost("/equipment", async (Equipment equipment, IEquipmentRepository equipmentRepo) =>
     {
         equipment.CreatedAt = DateTime.UtcNow;
         await equipmentRepo.AddAsync(equipment);
@@ -181,7 +357,7 @@ static void MapApiRoutes(WebApplication app)
     .WithName("CreateEquipment")
     .WithTags("Equipment");
 
-    app.MapPut("/api/v1/equipment/{id}", async (int id, Equipment equipment, IEquipmentRepository equipmentRepo) =>
+    api.MapPut("/equipment/{id}", async (int id, Equipment equipment, IEquipmentRepository equipmentRepo) =>
     {
         var existing = await equipmentRepo.GetByIdAsync(id);
         if (existing is null)
@@ -207,7 +383,7 @@ static void MapApiRoutes(WebApplication app)
     .WithName("UpdateEquipment")
     .WithTags("Equipment");
 
-    app.MapDelete("/api/v1/equipment/{id}", async (int id, IEquipmentRepository equipmentRepo) =>
+    api.MapDelete("/equipment/{id}", async (int id, IEquipmentRepository equipmentRepo) =>
     {
         var equipment = await equipmentRepo.GetByIdAsync(id);
         if (equipment is null)
@@ -221,11 +397,11 @@ static void MapApiRoutes(WebApplication app)
     .WithName("DeleteEquipment")
     .WithTags("Equipment");
 
-    app.MapGet("/api/v1/integration/upkeep/assets", (IUpkeepAssetCatalog assets) => Results.Ok(assets.GetAssets()))
+    api.MapGet("/integration/upkeep/assets", (IUpkeepAssetCatalog assets) => Results.Ok(assets.GetAssets()))
     .WithName("GetUpkeepAssets")
     .WithTags("Upkeep");
 
-    app.MapPost("/api/v1/integration/upkeep/sync", async (ApplicationDbContext db) =>
+    api.MapPost("/integration/upkeep/sync", async (ApplicationDbContext db) =>
     {
         var equipmentWithUpkeep = await db.Equipment
             .Where(e => e.UpkeepAssetId != null)
@@ -241,14 +417,14 @@ static void MapApiRoutes(WebApplication app)
     .WithName("SyncUpkeep")
     .WithTags("Upkeep");
 
-    app.MapPost("/api/v1/integration/upkeep/downtime", () =>
+    api.MapPost("/integration/upkeep/downtime", () =>
     {
         return Results.Ok(new { success = true, message = "Downtime logged to Upkeep" });
     })
     .WithName("LogDowntime")
     .WithTags("Upkeep");
 
-    app.MapGet("/api/v1/materials", async (IMaterialRepository materialRepo) =>
+    api.MapGet("/materials", async (IMaterialRepository materialRepo) =>
     {
         var materials = await materialRepo.GetAllAsync();
         return Results.Ok(materials.Take(100));
@@ -256,7 +432,7 @@ static void MapApiRoutes(WebApplication app)
     .WithName("GetMaterials")
     .WithTags("Materials");
 
-    app.MapGet("/api/v1/materials/{id}", async (int id, IMaterialRepository materialRepo) =>
+    api.MapGet("/materials/{id}", async (int id, IMaterialRepository materialRepo) =>
     {
         var material = await materialRepo.GetByIdAsync(id);
         return material is null ? Results.NotFound() : Results.Ok(material);
@@ -264,7 +440,7 @@ static void MapApiRoutes(WebApplication app)
     .WithName("GetMaterial")
     .WithTags("Materials");
 
-    app.MapPost("/api/v1/materials", async (Material material, IMaterialRepository materialRepo) =>
+    api.MapPost("/materials", async (Material material, IMaterialRepository materialRepo) =>
     {
         material.CreatedAt = DateTime.UtcNow;
         await materialRepo.AddAsync(material);
@@ -273,7 +449,7 @@ static void MapApiRoutes(WebApplication app)
     .WithName("CreateMaterial")
     .WithTags("Materials");
 
-    app.MapGet("/api/v1/operators", async (IOperatorRepository operatorRepo) =>
+    api.MapGet("/operators", async (IOperatorRepository operatorRepo) =>
     {
         var operators = await operatorRepo.GetAllAsync();
         return Results.Ok(operators.Take(100));
@@ -281,7 +457,7 @@ static void MapApiRoutes(WebApplication app)
     .WithName("GetOperators")
     .WithTags("Operators");
 
-    app.MapGet("/api/v1/operators/{id}", async (int id, IOperatorRepository operatorRepo) =>
+    api.MapGet("/operators/{id}", async (int id, IOperatorRepository operatorRepo) =>
     {
         var op = await operatorRepo.GetByIdAsync(id);
         return op is null ? Results.NotFound() : Results.Ok(op);
@@ -289,7 +465,7 @@ static void MapApiRoutes(WebApplication app)
     .WithName("GetOperator")
     .WithTags("Operators");
 
-    app.MapPost("/api/v1/operators", async (Operator op, IOperatorRepository operatorRepo) =>
+    api.MapPost("/operators", async (Operator op, IOperatorRepository operatorRepo) =>
     {
         op.CreatedAt = DateTime.UtcNow;
         await operatorRepo.AddAsync(op);
@@ -298,7 +474,7 @@ static void MapApiRoutes(WebApplication app)
     .WithName("CreateOperator")
     .WithTags("Operators");
 
-    app.MapGet("/api/v1/quality/inspections", async (IInspectionRepository inspectionRepo) =>
+    api.MapGet("/quality/inspections", async (IInspectionRepository inspectionRepo) =>
     {
         var inspections = await inspectionRepo.GetAllAsync();
         return Results.Ok(inspections.Take(100));
@@ -306,7 +482,7 @@ static void MapApiRoutes(WebApplication app)
     .WithName("GetInspections")
     .WithTags("Quality");
 
-    app.MapGet("/api/v1/quality/ncr", async (INonConformanceRepository ncrRepo) =>
+    api.MapGet("/quality/ncr", async (INonConformanceRepository ncrRepo) =>
     {
         var ncrs = await ncrRepo.GetAllAsync();
         return Results.Ok(ncrs.Take(100));
@@ -314,7 +490,7 @@ static void MapApiRoutes(WebApplication app)
     .WithName("GetNonConformances")
     .WithTags("Quality");
 
-    app.MapGet("/api/v1/displays", () =>
+    api.MapGet("/displays", () =>
     {
         return Results.Ok(new[]
         {
@@ -327,7 +503,7 @@ static void MapApiRoutes(WebApplication app)
     .WithName("GetDisplays")
     .WithTags("Displays");
 
-    app.MapGet("/api/v1/displays/{id}", (string id) =>
+    api.MapGet("/displays/{id}", (string id) =>
     {
         return Results.Ok(new { id, name = "Display", type = "oee", refreshSeconds = 5, equipment = Array.Empty<int>() });
     })
