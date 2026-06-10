@@ -35,10 +35,13 @@
 - [x] Record backup zip path: `C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\CoroMES-source-backup-2026-06-10.zip`
 - [x] Add first Blazor admin/API auth gate from Jane security pass
 - [x] Add first-pass audit logging for equipment create/update/delete
+- [x] Add integration coverage for Blazor auth gates and equipment audit logging
 - [ ] Replace static admin pages with Blazor routes while preserving `/admin` compatibility
 - [ ] Replace static display viewer and builder pages with Blazor routes while preserving `/displays/viewer.html` and `/displays/builder.html` redirects
 - [ ] Keep Blazor screens aligned with current API route parity in `docs/API.md`
 - [ ] Move API business logic out of `Program.cs` into application services or endpoint modules
+- [ ] Persist display builder configurations and load them through the Blazor viewer
+- [ ] Move Upkeep placeholder asset matching behind a dedicated integration boundary
 
 ### 5. Product Surface Expansion
 
@@ -54,6 +57,7 @@
 - [x] Unit test CTI ingestion components
 - [x] Unit test i3X client behavior
 - [ ] Add API integration tests
+- [x] Keep Blazor auth and audit integration tests running as the migration smoke suite
 - [ ] Add persistence-mode coverage for SQLite and PostgreSQL
 - [ ] Add CTI end-to-end ingestion tests with representative sample files
 
@@ -70,6 +74,7 @@
 
 1. Collect CTI source-system details and sample files
 2. Turn the CTI framework into a runnable connector host
-3. Continue the Blazor host migration in `src/CoroMES.Web`
+3. Finish and keep green the Blazor auth/audit integration tests
 4. Refactor API composition so the backend is easier to extend safely
-5. Start either implementing or pruning the reporting and industrial surfaces promised by older docs
+5. Persist display configurations and wire the Blazor viewer to saved definitions
+6. Start either implementing or pruning the reporting and industrial surfaces promised by older docs

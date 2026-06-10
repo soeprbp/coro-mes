@@ -75,7 +75,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 ### Tests
 
 - `CoroMES.UnitTests` contains real coverage for CTI ingestion and i3X client behavior
-- `CoroMES.IntegrationTests` exists but is still sparse
+- `CoroMES.IntegrationTests` now includes the first Blazor host smoke coverage for auth gates and equipment audit logging
 
 ## What Is Working Today
 
@@ -93,10 +93,11 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - CTI ingestion primitives are implemented and unit-tested
 - first Blazor admin auth gate protects `/admin`, `/displays/builder`, and `/api/v1/*`
 - first-pass audit logging records equipment create/update/delete actions
+- first Blazor integration tests exercise public versus protected route behavior and equipment audit writes
 
 ## Important Limitations
 
-- Blazor is now the forward UI path, but screens and redirect coverage still need build-out
+- Blazor is now the forward UI path, but screens, redirect coverage, and persisted display definitions still need build-out
 - no reporting API implementation despite the project and older docs
 - no industrial API surface despite earlier documentation
 - first auth gate is cookie-based and suitable for migration/local control, not final enterprise identity
@@ -115,15 +116,16 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - source backup zip captured at `C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\CoroMES-source-backup-2026-06-10.zip`
 - Jane security pass added the first Blazor admin/API auth gate
 - first audit foundation added `AuditLog` storage and equipment mutation logging
+- first Blazor host integration tests started for auth and audit behavior
 
 ## Recommended Next Steps
 
-1. replace the temporary admin access-code gate with the chosen enterprise identity model
-2. add integration tests for auth and audit behavior
-3. turn the CTI ingestion framework into a runnable connector workflow or host
-4. collect real Welch CTI sample files and source-system inventory
-5. continue building `CoroMES.Web` as the forward Blazor host while preserving API route parity
-6. move business behavior out of the large API `Program.cs` into application services
+1. keep the Blazor auth/audit integration smoke suite green while expanding the host
+2. move business behavior out of the large API `Program.cs` into endpoint modules and application services
+3. persist display builder configurations and load them through the Blazor viewer
+4. replace the temporary admin access-code gate with the chosen enterprise identity model
+5. turn the CTI ingestion framework into a runnable connector workflow or host
+6. collect real Welch CTI sample files and source-system inventory
 
 ## Key References
 

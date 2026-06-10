@@ -42,6 +42,18 @@ The first audit foundation records equipment create/update/delete actions from b
 
 The next audit expansion should cover work orders, materials, operators, Upkeep sync/downtime actions, and any future i3X or industrial write paths.
 
+## Next Build Slice
+
+The team should move the Blazor fork forward in this order:
+
+1. Keep the auth and audit integration smoke suite green as a migration guardrail.
+2. Extract API endpoint composition out of the large `Program.cs` into endpoint modules and application services.
+3. Persist display builder configurations instead of returning hard-coded display definitions.
+4. Wire the Blazor display viewer to saved display definitions.
+5. Move the current UpKeep placeholder catalog behind an integration boundary with a clear mock/live mode.
+
+This order keeps Jane's security surface reviewable while Wash and River expand the host without burying business behavior inside the startup file.
+
 ## API Route Parity
 
 The Blazor app should preserve the current API route contract while it replaces static pages. Existing route families remain the compatibility target:
@@ -107,6 +119,7 @@ Suggested forward mappings:
 ## Verification Checklist
 
 - `dotnet build CoroMES.sln` succeeds.
+- `dotnet test CoroMES.sln` succeeds, including Blazor auth and audit integration tests.
 - `src/CoroMES.Web` starts locally as the forward UI host.
 - `src/CoroMES.Api` still exposes the documented API route set.
 - Old static URLs redirect or remain compatible.
