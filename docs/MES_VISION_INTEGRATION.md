@@ -114,7 +114,7 @@ i3X camera value:
 
 ### Phase 1: Poll Through i3X
 
-Use CoroMES' existing `CoroMES.Industrial.i3X` client as the preferred integration path.
+Use CoroMES' existing `CoroMES.Industrial.i3X` client as the preferred integration path, but update it against the official CESMII i3X 1.0 contract before treating MES-Vision as authoritative.
 
 1. Call `/v1/info` to verify the endpoint is healthy and supports history/subscription capability.
 2. Call `/v1/objects?includeMetadata=true` to discover cameras and zones.
@@ -240,16 +240,17 @@ Keep image/frame retention out of the first implementation. If snapshots are nee
 
 ## Compatibility Notes
 
-The investigated MES-Vision code exposes a strong test surface, but CoroMES should handle these differences explicitly:
+The official CESMII i3X baseline is tracked in `docs/I3X_STANDARDS_TRACKING.md`. The investigated MES-Vision code exposes a strong practical test surface, but CoroMES should handle these differences explicitly:
 
 - MES-Vision i3X default port is currently `5002` in `config/config.yaml`, while some docs mention `5001`.
-- MES-Vision object filtering uses `typeElementId`; the current CoroMES i3X client sends `typeId`.
+- Official i3X 1.0 and MES-Vision object filtering use `typeElementId`; the current CoroMES i3X client sends `typeId`.
 - MES-Vision history requires `startTime` and `endTime`; CoroMES should always provide both.
 - MES-Vision implements subscription sync as `POST /v1/subscriptions/sync` with `subscriptionId` in the body, while the current CoroMES client expects `POST /v1/subscriptions/{id}/sync`.
-- MES-Vision implements bulk value writes at `PUT /v1/objects/value`; current CoroMES write code uses per-object `PUT /v1/objects/{id}/value`.
-- MES-Vision SSE stream is implemented, but CoroMES does not yet have a streaming i3X client method.
+- Official i3X 1.0 and MES-Vision implement bulk value writes at `PUT /v1/objects/value`; current CoroMES write code uses per-object `PUT /v1/objects/{id}/value`.
+- Official i3X 1.0 requires subscription `clientId` scoping and body-oriented subscription routes; CoroMES does not yet model that.
+- MES-Vision SSE stream is implemented, but CoroMES does not yet have a streaming i3X client method. Official i3X 1.0 treats streaming as optional, so polling/sync stays the baseline.
 
-For the first collector, prefer read-only discovery, value polling, and history polling. Add a MES-Vision-specific compatibility shim or broaden the i3X client only after tests prove which route forms are required.
+For the first collector, prefer read-only discovery, value polling, and history polling. Keep the core i3X client aligned to CESMII 1.0, then add a MES-Vision-specific compatibility shim only where MES-Vision differs from the standard.
 
 ## Security Notes
 

@@ -23,6 +23,7 @@ Welcome to the CoroMES documentation. This index reflects the repository as it e
 - [Integrations Overview](./INTEGRATIONS.md)
 - [CTI / EPS Research Brief](./CTI_RESEARCH_BRIEF.md) - Welch-specific CTI/EPS migration baseline
 - [MES-Vision Integration Plan](./MES_VISION_INTEGRATION.md) - vision telemetry test endpoint, data model, and collector plan
+- [i3X Standards Tracking](./I3X_STANDARDS_TRACKING.md) - upstream CESMII i3X version tracking and implementation guardrails
 - [Security Advisor](./SECURITY_ADVISOR.md) - repeatable audit checklist and runbook
 - [Welch CTI Connector Skill Backup](./skills/welch-cti-connector/SKILL.md) - repo backup of the reusable Codex skill
 

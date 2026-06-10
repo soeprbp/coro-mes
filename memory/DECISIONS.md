@@ -62,14 +62,16 @@
 
 ## ADR-009: i3X Standards Compliance
 - **Date:** 2026-05-28
-- **Decision:** CoroMES i3X integration must follow the public CESMII i3X beta/OpenAPI contract rather than endpoint behavior from any single non-compliant server.
+- **Updated:** 2026-06-10
+- **Decision:** CoroMES i3X integration must follow the official CESMII i3X 1.0 specification rather than endpoint behavior from any single non-compliant or beta-era server.
 - **Reason:** i3X is intended as a vendor-agnostic REST API for contextualized manufacturing data. Some test endpoints may advertise capabilities before implementing the standard routes correctly.
-- **Canonical references:** https://i3x.dev/ and https://i3x.cesmii.net/v0/openapi.json
+- **Canonical references:** https://github.com/cesmii/i3X/tree/1.0, https://github.com/cesmii/i3X/blob/1.0/spec/IMPLEMENTATION_GUIDE.md, https://api.i3x.dev/v1/openapi.json, and `docs/I3X_STANDARDS_TRACKING.md`
+- **Latest upstream check:** branch `1.0` at `bbaded54e057718916e2ed5d67cd065f691799d3`; tag `1.0.0` at `34b766442f6ef614d47fe905459a2ea8b91c6f8b`.
 - **Required read/explore routes:** `GET /namespaces`, `GET /objecttypes`, `POST /objecttypes/query`, `GET /relationshiptypes`, `POST /relationshiptypes/query`, `GET /objects`, `POST /objects/list`, `POST /objects/related`
 - **Required value/history routes:** `POST /objects/value`, `POST /objects/history`
-- **Required update routes:** `PUT /objects/{elementId}/value`, `PUT /objects/{elementId}/history`
-- **Required subscription routes:** `GET /subscriptions`, `POST /subscriptions`, `GET /subscriptions/{subscriptionId}`, `DELETE /subscriptions/{subscriptionId}`, `POST /subscriptions/{subscriptionId}/register`, `POST /subscriptions/{subscriptionId}/unregister`, `GET /subscriptions/{subscriptionId}/stream`, `POST /subscriptions/{subscriptionId}/sync`
-- **Implementation note:** The public beta spec returns raw arrays/objects for many endpoints; do not assume a `StandardResponse<T>` wrapper unless a specific server documents it.
+- **Required update routes:** `PUT /objects/value`, `PUT /objects/history`
+- **Required subscription routes:** `POST /subscriptions`, `POST /subscriptions/list`, `POST /subscriptions/delete`, `POST /subscriptions/register`, `POST /subscriptions/unregister`, `POST /subscriptions/sync`; `POST /subscriptions/stream` is optional.
+- **Implementation note:** Subscription requests require `clientId`; timestamps must be UTC with `Z`; error payloads use `responseDetail`; streaming is optional, so collectors must support polling/sync first.
 - **Status:** Accepted
 
 ## ADR-010: MCP Exposure for AI Agents
