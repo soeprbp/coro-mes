@@ -16,7 +16,13 @@ This repository includes a `.devcontainer` setup for free DEV/TEST use in GitHub
 1. Push the branch to GitHub.
 2. In GitHub, select **Code > Codespaces > Create codespace**.
 3. Wait for package restore to finish.
-4. Start the API:
+4. Start the forward Blazor host:
+
+```bash
+dotnet run --project src/CoroMES.Web
+```
+
+Start the backend API directly when working on route behavior:
 
 ```bash
 dotnet run --project src/CoroMES.Api
@@ -30,7 +36,7 @@ Host=postgres;Port=5432;Database=coromes;Username=postgres;Password=changeme
 
 Forwarded ports are private by default:
 
-- `5000` - CoroMES API
+- `5000` - CoroMES API or forwarded development host
 - `5432` - PostgreSQL
 - `1883` - MQTT
 - `9001` - MQTT WebSockets
@@ -61,7 +67,15 @@ dotnet build
 dotnet run --project src/CoroMES.Api
 ```
 
-### 5. Access Swagger
+### 5. Run the Blazor Host
+
+```powershell
+dotnet run --project src/CoroMES.Web
+```
+
+`src/CoroMES.Web` is the forward UI host for admin and shop-floor display workflows. `src/CoroMES.Api` remains the backend API host and route contract source of truth.
+
+### 6. Access Swagger
 
 Visit: http://localhost:5000/swagger
 
@@ -69,7 +83,8 @@ Visit: http://localhost:5000/swagger
 
 ```
 src/
-├── CoroMES.Api/           # Entry point, minimal API
+├── CoroMES.Web/           # Forward Blazor host
+├── CoroMES.Api/           # Backend minimal API
 ├── CoroMES.Application/  # Use cases, services
 ├── CoroMES.Core/         # Entities, interfaces
 ├── CoroMES.Infrastructure/# DB, external clients
@@ -77,6 +92,8 @@ src/
 ```
 
 ## Adding a New Feature
+
+For UI work, add Blazor pages/components in `src/CoroMES.Web` and preserve the existing backend route contract unless an API migration is explicitly planned. Legacy static URLs such as `/admin`, `/displays/viewer.html`, and `/displays/builder.html` should redirect to the matching Blazor route or remain compatible until the replacement is complete.
 
 ### 1. Create Entity (Core)
 
@@ -251,6 +268,15 @@ dotnet ef database update --project src/CoroMES.Infrastructure
 # Publish
 dotnet publish src/CoroMES.Api -c Release -o ./publish
 ```
+
+## Blazor Migration Notes
+
+- Forward host: `src/CoroMES.Web`
+- Backend API host: `src/CoroMES.Api`
+- Preservation branch/tag: `pre-blazor-2026-06-10`
+- Source backup zip: `C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\CoroMES-source-backup-2026-06-10.zip`
+- Route parity reference: `docs/API.md`
+- Migration detail: `docs/BLAZOR_MIGRATION.md`
 
 ## Troubleshooting
 

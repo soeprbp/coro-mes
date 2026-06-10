@@ -7,7 +7,8 @@
 - **Phase:** Prototype foundation complete; integration-driven modernization work in progress
 - **Current Version:** 0.1.0-alpha
 - **Framework:** .NET 10
-- **Primary Host:** `src/CoroMES.Api`
+- **Forward UI Host:** `src/CoroMES.Web`
+- **Backend API Host:** `src/CoroMES.Api`
 - **Default Local Database:** SQLite
 - **Production-Intended Database:** PostgreSQL
 
@@ -18,7 +19,8 @@ CoroMES is no longer just a scaffold. The repository now contains:
 - a working Minimal API host
 - domain entities and repository interfaces
 - EF Core persistence and migrations
-- static admin and shop-floor display prototypes
+- a forward Blazor host for admin and shop-floor display workflows
+- static admin and shop-floor display prototype URLs that need redirects or compatibility shims during migration
 - an i3X client and repository adapter layer
 - a CTI/EPS file-ingestion framework designed for safe migration work
 
@@ -42,6 +44,7 @@ The codebase still stops short of a full MES application. Several architectural 
 | Project | Current Reality |
 |---------|-----------------|
 | CoroMES.Api | Active Minimal API host and static file host |
+| CoroMES.Web | Forward Blazor host for admin and shop-floor display workflows |
 | CoroMES.Core | Active domain entities, enums, interfaces |
 | CoroMES.Application | Present, but still light; not yet the full service/use-case layer |
 | CoroMES.Infrastructure | Active EF Core, repositories, migrations, i3X adapters |
@@ -82,7 +85,8 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - foundational CRUD-like endpoints exist for work orders, equipment, materials, and operators
 - read endpoints exist for quality inspections and NCRs
 - prototype Upkeep endpoints and display endpoints exist
-- static admin and display pages are served
+- `CoroMES.Web` is the forward Blazor host
+- old static admin and display URLs are expected to redirect or remain compatible during migration
 - EF Core persistence is wired up
 - PostgreSQL migrations are checked in
 - optional i3X repository mode exists behind configuration
@@ -90,7 +94,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 
 ## Important Limitations
 
-- no Blazor front end yet
+- Blazor is now the forward UI path, but screens and redirect coverage still need build-out
 - no reporting API implementation despite the project and older docs
 - no industrial API surface despite earlier documentation
 - no authentication or authorization layer
@@ -104,12 +108,14 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - CTI/EPS research brief and reusable skill backup
 - CTI ingestion project with file discovery, capture, parser, validator, and pipeline
 - security audit documentation and helper script additions in the working tree
+- Blazor fork preservation at branch/tag `pre-blazor-2026-06-10`
+- source backup zip captured at `C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\CoroMES-source-backup-2026-06-10.zip`
 
 ## Recommended Next Steps
 
 1. turn the CTI ingestion framework into a runnable connector workflow or host
 2. collect real Welch CTI sample files and source-system inventory
-3. decide the main UI direction, with Blazor as the preferred Windows-oriented front end
+3. continue building `CoroMES.Web` as the forward Blazor host while preserving API route parity
 4. move business behavior out of the large API `Program.cs` into application services
 5. either implement or trim the planned reporting and industrial surfaces
 6. add meaningful integration tests for the API and persistence paths

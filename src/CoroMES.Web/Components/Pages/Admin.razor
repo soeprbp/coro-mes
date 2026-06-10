@@ -1,0 +1,326 @@
+@page "/admin"
+@page "/admin/equipment"
+@page "/admin/upkeep"
+@page "/admin/protocols"
+@page "/admin/settings"
+@rendermode InteractiveServer
+@inject IEquipmentRepository EquipmentRepository
+@inject NavigationManager Navigation
+
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="brand"><span class="brand-mark">C</span><span>CoroMES</span></div>
+        <nav>
+            <a class="@NavClass("dashboard")" href="/admin">Dashboard</a>
+            <a class="@NavClass("equipment")" href="/admin/equipment">Equipment</a>
+            <a class="@NavClass("upkeep")" href="/admin/upkeep">Upkeep Sync</a>
+            <a class="@NavClass("protocols")" href="/admin/protocols">Protocols</a>
+            <a class="@NavClass("settings")" href="/admin/settings">Settings</a>
+        </nav>
+    </aside>
+
+    <main class="workspace">
+        @if (section == "dashboard")
+        {
+            <header class="page-header">
+                <div><p class="eyebrow">Admin</p><h1>Equipment Overview</h1></div>
+                <a class="button primary" href="/admin/equipment">Add Equipment</a>
+            </header>
+
+            <section class="metric-grid">
+                <article class="metric"><span>Total Equipment</span><strong>@equipment.Count</strong></article>
+                <article class="metric"><span>Running</span><strong>@equipment.Count(e => e.Status == EquipmentStatus.Running)</strong></article>
+                <article class="metric"><span>Down</span><strong>@equipment.Count(e => e.Status == EquipmentStatus.Down)</strong></article>
+                <article class="metric"><span>Linked to Upkeep</span><strong>@equipment.Count(e => e.UpkeepAssetId.HasValue)</strong></article>
+            </section>
+
+            <section class="panel">
+                <div class="panel-title"><h2>Recent Activity</h2></div>
+                <div class="activity-list">
+                    @if (equipment.Count == 0)
+                    {
+                        <p class="muted">No equipment has been registered yet.</p>
+                    }
+                    else
+                    {
+                        @foreach (var item in equipment.Take(6))
+                        {
+                            <div class="activity-row">
+                                <span class="status-dot @StatusClass(item.Status)"></span>
+                                <span>@item.Code</span>
+                                <strong>@item.Name</strong>
+                                <span>@item.Status</span>
+                            </div>
+                        }
+                    }
+                </div>
+            </section>
+        }
+        else if (section == "equipment")
+        {
+            <header class="page-header">
+                <div><p class="eyebrow">Assets</p><h1>Equipment Management</h1></div>
+                <button class="button primary" @onclick="NewEquipment">New</button>
+            </header>
+
+            <section class="split-layout">
+                <div class="panel">
+                    <div class="panel-title"><h2>@(editingId.HasValue ? "Edit Equipment" : "Add Equipment")</h2></div>
+                    <div class="form-grid">
+                        <label>Code <input @bind="form.Code" /></label>
+                        <label>Name <input @bind="form.Name" /></label>
+                        <label>IP Address <input @bind="form.IpAddress" /></label>
+                        <label>Protocol <input @bind="form.Protocol" placeholder="auto, mqtt, opcua" /></label>
+                        <label>Parts/Minute <input type="number" @bind="form.PartsPerMinute" /></label>
+                        <label>Sq Ft/Day <input type="number" @bind="form.SqFtPerDay" /></label>
+                        <label>Cycle Seconds <input type="number" @bind="form.CycleTimeSeconds" /></label>
+                        <label>Upkeep Asset Id <input type="number" @bind="form.UpkeepAssetId" /></label>
+                        <label>
+                            Type
+                            <select @bind="form.Type">
+                                @foreach (var value in Enum.GetValues<EquipmentType>())
+                                {
+                                    <option value="@value">@value</option>
+                                }
+                            </select>
+                        </label>
+                        <label>
+                            Status
+                            <select @bind="form.Status">
+                                @foreach (var value in Enum.GetValues<EquipmentStatus>())
+                                {
+                                    <option value="@value">@value</option>
+                                }
+                            </select>
+                        </label>
+                    </div>
+                    <div class="action-row">
+                        <button class="button primary" @onclick="SaveEquipment">Save</button>
+                        <button class="button" @onclick="NewEquipment">Clear</button>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(message))
+                    {
+                        <p class="notice">@message</p>
+                    }
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title">
+                        <h2>Registered Equipment</h2>
+                        <button class="button icon" title="Refresh" @onclick="LoadEquipment">Refresh</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Code</th><th>Name</th><th>Status</th><th>Protocol</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var item in equipment)
+                                {
+                                    <tr>
+                                        <td>@item.Code</td>
+                                        <td>@item.Name</td>
+                                        <td><span class="pill @StatusClass(item.Status)">@item.Status</span></td>
+                                        <td>@(item.Protocol ?? "manual")</td>
+                                        <td class="row-actions">
+                                            <button class="button small" @onclick="() => EditEquipment(item)">Edit</button>
+                                            <button class="button small danger" @onclick="() => DeleteEquipment(item.Id)">Delete</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        }
+        else if (section == "upkeep")
+        {
+            <header class="page-header">
+                <div><p class="eyebrow">Integration</p><h1>Upkeep Sync</h1></div>
+                <button class="button primary" @onclick="SyncUpkeep">Sync Now</button>
+            </header>
+            <section class="panel">
+                <div class="panel-title"><h2>Available Upkeep Assets</h2></div>
+                <div class="asset-grid">
+                    @foreach (var asset in upkeepAssets)
+                    {
+                        <article class="asset-card">
+                            <strong>@asset.Name</strong><span>@asset.Type</span><span>@asset.Location</span><code>@asset.Id</code>
+                        </article>
+                    }
+                </div>
+                <p class="notice">@syncStatus</p>
+            </section>
+        }
+        else if (section == "protocols")
+        {
+            <header class="page-header">
+                <div><p class="eyebrow">Connectivity</p><h1>Protocol Settings</h1></div>
+                <button class="button primary" @onclick="SaveProtocolSettings">Save</button>
+            </header>
+            <section class="protocol-grid">
+                @foreach (var setting in protocolSettings)
+                {
+                    <article class="panel">
+                        <div class="panel-title"><h2>@setting.Name</h2><label class="toggle"><input type="checkbox" @bind="setting.Enabled" /> Enabled</label></div>
+                        <label>Host <input @bind="setting.Host" /></label>
+                        <label>Port <input type="number" @bind="setting.Port" /></label>
+                    </article>
+                }
+            </section>
+            <p class="notice">@protocolMessage</p>
+        }
+        else if (section == "settings")
+        {
+            <header class="page-header"><div><p class="eyebrow">System</p><h1>Settings</h1></div></header>
+            <section class="panel narrow">
+                <label>API Base URL <input value="http://localhost:5000" readonly /></label>
+                <label>Admin Mode <input value="Development prototype" readonly /></label>
+                <p class="muted">Server-side authentication is still planned. This Blazor page replaces the static prototype shell but keeps the same development-only posture.</p>
+            </section>
+        }
+    </main>
+</div>
+
+@code {
+    private readonly List<UpkeepAsset> upkeepAssets =
+    [
+        new(101, "Corrugator Main Drive", "Equipment", "Building A"),
+        new(102, "Bender Unit A1", "Equipment", "Building B"),
+        new(103, "Conveyor Belt Line 1", "Equipment", "Building A"),
+        new(104, "Temperature Sensor Array", "Sensor", "Building A")
+    ];
+
+    private readonly List<ProtocolSetting> protocolSettings =
+    [
+        new("MQTT", true, "localhost", 1883),
+        new("OPC-UA", false, "opc.tcp://localhost", 4840),
+        new("Ethernet/IP", false, "192.168.1.10", 44818)
+    ];
+
+    private List<Equipment> equipment = [];
+    private Equipment form = new();
+    private int? editingId;
+    private string section = "dashboard";
+    private string? message;
+    private string syncStatus = "Last sync: Never";
+    private string? protocolMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        section = ResolveSection();
+        await LoadEquipment();
+    }
+
+    protected override void OnParametersSet()
+    {
+        section = ResolveSection();
+    }
+
+    private string ResolveSection()
+    {
+        var path = new Uri(Navigation.Uri).AbsolutePath.Trim('/').ToLowerInvariant();
+        return path switch
+        {
+            "admin/equipment" => "equipment",
+            "admin/upkeep" => "upkeep",
+            "admin/protocols" => "protocols",
+            "admin/settings" => "settings",
+            _ => "dashboard"
+        };
+    }
+
+    private string NavClass(string target) => section == target ? "active" : string.Empty;
+
+    private static string StatusClass(EquipmentStatus status) => status switch
+    {
+        EquipmentStatus.Running => "good",
+        EquipmentStatus.Available => "good",
+        EquipmentStatus.Idle => "warn",
+        EquipmentStatus.Setup => "warn",
+        EquipmentStatus.Down => "bad",
+        EquipmentStatus.Maintenance => "bad",
+        _ => "neutral"
+    };
+
+    private async Task LoadEquipment()
+    {
+        equipment = (await EquipmentRepository.GetAllAsync()).OrderBy(item => item.Code).ToList();
+    }
+
+    private void NewEquipment()
+    {
+        editingId = null;
+        form = new Equipment { Type = EquipmentType.Machine, Status = EquipmentStatus.Available, Protocol = "manual" };
+        message = null;
+    }
+
+    private void EditEquipment(Equipment item)
+    {
+        editingId = item.Id;
+        form = new Equipment
+        {
+            Id = item.Id,
+            Code = item.Code,
+            Name = item.Name,
+            Type = item.Type,
+            Status = item.Status,
+            IpAddress = item.IpAddress,
+            Protocol = item.Protocol,
+            PartsPerMinute = item.PartsPerMinute,
+            SqFtPerDay = item.SqFtPerDay,
+            CycleTimeSeconds = item.CycleTimeSeconds,
+            UpkeepAssetId = item.UpkeepAssetId
+        };
+        message = null;
+    }
+
+    private async Task SaveEquipment()
+    {
+        if (string.IsNullOrWhiteSpace(form.Code) || string.IsNullOrWhiteSpace(form.Name))
+        {
+            message = "Code and name are required.";
+            return;
+        }
+
+        if (editingId.HasValue)
+        {
+            await EquipmentRepository.UpdateAsync(form);
+            message = $"{form.Code} updated.";
+        }
+        else
+        {
+            await EquipmentRepository.AddAsync(form);
+            message = $"{form.Code} added.";
+        }
+
+        NewEquipment();
+        await LoadEquipment();
+    }
+
+    private async Task DeleteEquipment(int id)
+    {
+        await EquipmentRepository.DeleteAsync(id);
+        await LoadEquipment();
+    }
+
+    private void SyncUpkeep()
+    {
+        var linked = equipment.Count(item => item.UpkeepAssetId.HasValue);
+        syncStatus = $"Last sync: {DateTime.Now:g}. Linked assets: {linked}.";
+    }
+
+    private void SaveProtocolSettings()
+    {
+        protocolMessage = $"Protocol settings saved at {DateTime.Now:t}.";
+    }
+
+    private sealed record UpkeepAsset(int Id, string Name, string Type, string Location);
+
+    private sealed class ProtocolSetting(string name, bool enabled, string host, int port)
+    {
+        public string Name { get; } = name;
+        public bool Enabled { get; set; } = enabled;
+        public string Host { get; set; } = host;
+        public int Port { get; set; } = port;
+    }
+}

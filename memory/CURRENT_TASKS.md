@@ -28,10 +28,14 @@
 - [ ] Decide whether i3X is a primary runtime mode, a migration bridge, or both
 - [ ] Align translator outputs with future MCP exposure requirements
 
-### 4. Application and UI Direction
+### 4. Blazor Host Migration
 
-- [ ] Decide whether the primary UI migration path is Blazor
-- [ ] If yes, scaffold a `CoroMES.Web` front end and begin replacing static admin pages
+- [x] Establish `CoroMES.Web` as the forward Blazor host for admin and shop-floor display workflows
+- [x] Preserve the pre-Blazor source state at branch/tag `pre-blazor-2026-06-10`
+- [x] Record backup zip path: `C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\CoroMES-source-backup-2026-06-10.zip`
+- [ ] Replace static admin pages with Blazor routes while preserving `/admin` compatibility
+- [ ] Replace static display viewer and builder pages with Blazor routes while preserving `/displays/viewer.html` and `/displays/builder.html` redirects
+- [ ] Keep Blazor screens aligned with current API route parity in `docs/API.md`
 - [ ] Move API business logic out of `Program.cs` into application services or endpoint modules
 
 ### 5. Product Surface Expansion
@@ -62,6 +66,6 @@
 
 1. Collect CTI source-system details and sample files
 2. Turn the CTI framework into a runnable connector host
-3. Choose the UI direction, with Blazor currently the preferred target if we move to a .NET front end
+3. Continue the Blazor host migration in `src/CoroMES.Web`
 4. Refactor API composition so the backend is easier to extend safely
 5. Start either implementing or pruning the reporting and industrial surfaces promised by older docs

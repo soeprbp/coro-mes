@@ -1,0 +1,119 @@
+@page "/displays"
+@page "/displays/builder"
+@rendermode InteractiveServer
+@inject IEquipmentRepository EquipmentRepository
+
+<div class="display-admin">
+    <aside class="sidebar compact">
+        <div class="brand"><span class="brand-mark">D</span><span>Displays</span></div>
+        <nav>
+            <a class="active" href="/displays/builder">Builder</a>
+            <a href="/displays/viewer?id=preview&type=oee">Preview</a>
+            <a href="/admin">Admin</a>
+        </nav>
+    </aside>
+
+    <main class="workspace">
+        <header class="page-header">
+            <div><p class="eyebrow">Shop Floor</p><h1>Display Builder</h1></div>
+            <button class="button primary" @onclick="CreateDisplay">Create Display</button>
+        </header>
+
+        <section class="split-layout">
+            <div class="panel">
+                <div class="panel-title"><h2>Configure</h2></div>
+                <div class="form-grid">
+                    <label>Name <input @bind="draft.Name" /></label>
+                    <label>
+                        Type
+                        <select @bind="draft.Type">
+                            <option value="oee">OEE</option>
+                            <option value="production">Production</option>
+                            <option value="quality">Quality</option>
+                            <option value="equipment">Equipment</option>
+                        </select>
+                    </label>
+                    <label>Refresh Seconds <input type="number" @bind="draft.RefreshSeconds" /></label>
+                    <label>
+                        Equipment
+                        <select @bind="draft.EquipmentId">
+                            <option value="">None</option>
+                            @foreach (var item in equipment)
+                            {
+                                <option value="@item.Id">@item.Code - @item.Name</option>
+                            }
+                        </select>
+                    </label>
+                </div>
+                <div class="action-row">
+                    <button class="button primary" @onclick="CreateDisplay">Save</button>
+                    <a class="button" href="@PreviewUrl">Preview</a>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title"><h2>My Displays</h2></div>
+                <div class="display-list">
+                    @foreach (var display in displays)
+                    {
+                        <article class="display-row">
+                            <div>
+                                <strong>@display.Name</strong>
+                                <span>@display.Type.ToUpperInvariant() - @display.RefreshSeconds sec</span>
+                            </div>
+                            <a class="button small" href="@ViewerUrl(display)">Open</a>
+                        </article>
+                    }
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+@code {
+    private List<Equipment> equipment = [];
+    private List<DisplayDraft> displays = [];
+    private DisplayDraft draft = new() { Name = "Line 1 OEE", Type = "oee", RefreshSeconds = 5 };
+
+    private string PreviewUrl => $"/displays/viewer?id=preview&type={draft.Type}&name={Uri.EscapeDataString(draft.Name)}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        equipment = (await EquipmentRepository.GetAllAsync()).OrderBy(item => item.Code).ToList();
+        displays =
+        [
+            new() { Id = "line1-oee", Name = "Line 1 OEE", Type = "oee", RefreshSeconds = 5 },
+            new() { Id = "quality", Name = "Quality Monitor", Type = "quality", RefreshSeconds = 10 },
+            new() { Id = "equipment", Name = "Equipment Status", Type = "equipment", RefreshSeconds = 3 }
+        ];
+    }
+
+    private void CreateDisplay()
+    {
+        var saved = new DisplayDraft
+        {
+            Id = string.IsNullOrWhiteSpace(draft.Id) ? $"display-{DateTime.UtcNow:HHmmss}" : draft.Id,
+            Name = string.IsNullOrWhiteSpace(draft.Name) ? "New Display" : draft.Name,
+            Type = draft.Type,
+            RefreshSeconds = Math.Max(1, draft.RefreshSeconds),
+            EquipmentId = draft.EquipmentId
+        };
+
+        displays.Insert(0, saved);
+        draft = new DisplayDraft { Name = "New Display", Type = "oee", RefreshSeconds = 5 };
+    }
+
+    private static string ViewerUrl(DisplayDraft display)
+    {
+        return $"/displays/viewer?id={display.Id}&type={display.Type}&name={Uri.EscapeDataString(display.Name)}";
+    }
+
+    private sealed class DisplayDraft
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = "oee";
+        public int RefreshSeconds { get; set; } = 5;
+        public int? EquipmentId { get; set; }
+    }
+}

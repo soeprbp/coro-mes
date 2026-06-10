@@ -2,18 +2,19 @@
 
 ## Overview
 
-CoroMES is structured like a Clean Architecture solution, but the implementation is still in a prototype-heavy stage. The boundaries are useful and mostly in place, though much of the live behavior still runs through a single Minimal API host.
+CoroMES is structured like a Clean Architecture solution, but the implementation is still in a prototype-heavy stage. In the Blazor fork, `CoroMES.Web` is the forward user-facing host while `CoroMES.Api` remains the backend Minimal API host and API route source of truth.
 
 ## What Exists Today
 
 ### Active runtime
 
-- `CoroMES.Api` is the primary runnable application
+- `CoroMES.Web` is the forward Blazor host for admin and shop-floor display workflows
+- `CoroMES.Api` is the backend Minimal API host
 - `CoroMES.Infrastructure` contains the EF Core context, repository implementations, and i3X-backed repository adapters
 - `CoroMES.Core` contains the real domain entities, enums, and repository interfaces
 - `integration/CoroMES.Integration.Cti` is an active ingestion framework for legacy CTI/EPS files
 - `industrial/CoroMES.Industrial.i3X` is an active i3X client, model, and translation layer
-- `web/admin` and `web/displays` are static HTML/JS prototype UIs served by the API host
+- old static URLs under `web/admin` and `web/displays` are migration compatibility paths that should redirect to Blazor routes or remain shimmed until replaced
 
 ### Planned or mostly skeletal areas
 
@@ -26,15 +27,19 @@ CoroMES is structured like a Clean Architecture solution, but the implementation
 
 ```text
 Clients
-  |- Static admin UI
-  |- Static display UI
+  |- Blazor admin UI
+  |- Blazor display UI
   |- External callers
   |
   v
-CoroMES.Api (Minimal API host)
+CoroMES.Web (forward Blazor host)
+  |
+  v
+CoroMES.Api (backend Minimal API host)
   |- EF Core repository mode
   |- optional i3X repository mode
-  |- static file hosting for /admin and /displays
+  |- API route parity for /api/v1, /health, and display config endpoints
+  |- compatibility redirects for old static URLs
   |
   v
 CoroMES.Core + CoroMES.Infrastructure
@@ -58,9 +63,17 @@ CoroMES.Core + CoroMES.Infrastructure
   - database provider selection
   - repository registration
   - HTTP endpoints
-  - static file hosting
+  - compatibility redirects or static shims during migration
 
 Today, many responsibilities that would eventually move into an application layer still live here.
+
+### Web Layer
+
+- **`CoroMES.Web`**
+  - forward Blazor host
+  - admin workflow pages
+  - shop-floor display viewer and builder pages
+  - client access to the existing backend API route contract
 
 ### Domain Layer
 
@@ -124,13 +137,13 @@ This is one of the more advanced parts of the repository, though some mappings s
 
 ## UI Architecture Today
 
-The current UI is not Blazor yet.
+The Blazor fork moves the primary UI direction to `src/CoroMES.Web`.
 
-- `web/admin/index.html` is a static admin prototype
-- `web/displays/viewer.html` is a static display viewer
-- `web/displays/builder.html` is a static display configuration prototype
+- `CoroMES.Web` is the forward host for admin and display workflows.
+- `web/admin/index.html`, `web/displays/viewer.html`, and `web/displays/builder.html` are pre-Blazor prototype paths.
+- Old static URLs should redirect to Blazor routes or remain available as compatibility shims until their replacement screens are complete.
 
-These pages are useful for proving workflows, but they are not yet integrated into a component-based .NET UI architecture.
+The pre-Blazor state is preserved at branch/tag `pre-blazor-2026-06-10` and in `C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\CoroMES-source-backup-2026-06-10.zip`.
 
 ## Key Gaps Between Structure and Reality
 
@@ -140,7 +153,7 @@ Notable gaps:
 
 - no reporting API implementation
 - no industrial protocol API implementation
-- no Blazor or other first-class .NET front end
+- Blazor screens are newly established as the forward UI path and still need build-out
 - no completed application-service or CQRS layer
 - placeholder Upkeep behavior in the API
 - incomplete integration tests
@@ -149,10 +162,10 @@ Notable gaps:
 
 The cleanest next steps are:
 
-1. keep `CoroMES.Api` as the current host
+1. build `CoroMES.Web` as the forward Blazor host
 2. turn `CoroMES.Application` into a real service/use-case layer
 3. make CTI ingestion runnable as an actual hosted connector workflow
-4. decide whether the primary front end becomes Blazor
+4. preserve API route parity while replacing static URLs with redirects
 5. either implement or trim the planned reporting and industrial surfaces
 
 ## Deployment Notes

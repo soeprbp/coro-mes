@@ -1,0 +1,132 @@
+@page "/displays/viewer"
+@rendermode InteractiveServer
+@implements IDisposable
+@inject IEquipmentRepository EquipmentRepository
+@inject IJSRuntime Js
+
+<main class="viewer-shell">
+    <section class="viewer-stage">
+        <header class="viewer-header">
+            <div>
+                <p>@Type.ToUpperInvariant()</p>
+                <h1>@Title</h1>
+            </div>
+            <div class="viewer-clock">
+                <strong>@now.ToString("h:mm tt")</strong>
+                <span>@now.ToString("MMM d, yyyy")</span>
+            </div>
+        </header>
+
+        @if (Type == "quality")
+        {
+            <div class="viewer-grid three">
+                <article><span>Inspected</span><strong>1,248</strong></article>
+                <article><span>Passed</span><strong>1,219</strong></article>
+                <article><span>Issues</span><strong>29</strong></article>
+            </div>
+        }
+        else if (Type == "equipment")
+        {
+            <div class="viewer-table">
+                @foreach (var item in equipment.Take(8))
+                {
+                    <div class="viewer-row">
+                        <span class="status-dot @StatusClass(item.Status)"></span>
+                        <strong>@item.Code</strong>
+                        <span>@item.Name</span>
+                        <span>@item.Status</span>
+                    </div>
+                }
+            </div>
+        }
+        else if (Type == "production")
+        {
+            <div class="viewer-grid three">
+                <article><span>Planned</span><strong>12,000</strong></article>
+                <article><span>Complete</span><strong>7,850</strong></article>
+                <article><span>Scrap</span><strong>184</strong></article>
+            </div>
+        }
+        else
+        {
+            <div class="oee-ring">
+                <strong>84%</strong>
+                <span>OEE</span>
+            </div>
+            <div class="viewer-grid three">
+                <article><span>Availability</span><strong>91%</strong></article>
+                <article><span>Performance</span><strong>88%</strong></article>
+                <article><span>Quality</span><strong>99%</strong></article>
+            </div>
+        }
+
+        <footer class="viewer-footer">
+            <span>Refresh: @RefreshSeconds sec</span>
+            <button class="button" @onclick="GoFullscreen">Fullscreen</button>
+        </footer>
+    </section>
+</main>
+
+@code {
+    private PeriodicTimer? timer;
+    private List<Equipment> equipment = [];
+    private DateTime now = DateTime.Now;
+
+    [SupplyParameterFromQuery(Name = "id")]
+    public string? DisplayId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "type")]
+    public string? DisplayType { get; set; }
+
+    [SupplyParameterFromQuery(Name = "name")]
+    public string? DisplayName { get; set; }
+
+    [SupplyParameterFromQuery(Name = "refresh")]
+    public int? Refresh { get; set; }
+
+    private string Type => string.IsNullOrWhiteSpace(DisplayType) ? "oee" : DisplayType.ToLowerInvariant();
+    private string Title => string.IsNullOrWhiteSpace(DisplayName) ? DisplayId ?? "Display" : DisplayName;
+    private int RefreshSeconds => Math.Max(1, Refresh ?? 5);
+
+    protected override async Task OnInitializedAsync()
+    {
+        equipment = (await EquipmentRepository.GetAllAsync()).ToList();
+        timer = new PeriodicTimer(TimeSpan.FromSeconds(RefreshSeconds));
+        _ = TickAsync();
+    }
+
+    private async Task TickAsync()
+    {
+        if (timer is null)
+        {
+            return;
+        }
+
+        while (await timer.WaitForNextTickAsync())
+        {
+            now = DateTime.Now;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task GoFullscreen()
+    {
+        await Js.InvokeVoidAsync("coromes.requestFullscreen");
+    }
+
+    private static string StatusClass(EquipmentStatus status) => status switch
+    {
+        EquipmentStatus.Running => "good",
+        EquipmentStatus.Available => "good",
+        EquipmentStatus.Idle => "warn",
+        EquipmentStatus.Setup => "warn",
+        EquipmentStatus.Down => "bad",
+        EquipmentStatus.Maintenance => "bad",
+        _ => "neutral"
+    };
+
+    public void Dispose()
+    {
+        timer?.Dispose();
+    }
+}

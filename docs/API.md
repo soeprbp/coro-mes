@@ -1,16 +1,17 @@
 # API Overview
 
-This document reflects the API surface that is actually implemented in `src/CoroMES.Api` today.
+This document reflects the API surface that is actually implemented in `src/CoroMES.Api` today. In the Blazor fork, `src/CoroMES.Web` is the forward UI host, but it should preserve this backend route contract.
 
 ## Current Runtime Surface
 
 The repository currently exposes a single Minimal API host.
 
 - Base host: `CoroMES.Api`
+- Forward UI host: `CoroMES.Web`
 - Main route family: `/api/v1`
 - Health check: `/health`
-- Static admin UI: `/admin`
-- Static display assets: `/displays/*`
+- Legacy static admin URL: `/admin`
+- Legacy static display URLs: `/displays/viewer.html`, `/displays/builder.html`
 
 ## Implemented Endpoints
 
@@ -111,6 +112,21 @@ GET /api/v1/displays/{id}
 Notes:
 
 - these currently return hard-coded display configuration payloads
+
+## Blazor Route Parity and Redirects
+
+`CoroMES.Web` should call or preserve the implemented API route families above. UI work in the Blazor fork should not rename backend routes from `/materials` to `/inventory`, from `/operators` to `/workforce/operators`, or otherwise drift from the live Minimal API contract without an explicit API migration.
+
+Old static URLs should remain compatible during migration:
+
+| Legacy URL | Forward Blazor Route |
+|------------|----------------------|
+| `/admin` | `/admin` |
+| `/admin/` | `/admin` |
+| `/displays/viewer.html` | `/displays/viewer` |
+| `/displays/builder.html` | `/displays/builder` |
+
+The pre-Blazor API/static web state is preserved at branch/tag `pre-blazor-2026-06-10` and in `C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\CoroMES-source-backup-2026-06-10.zip`.
 
 ## Configuration-Driven Behavior
 
