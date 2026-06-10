@@ -23,13 +23,12 @@ public interface II3XClient
     Task<List<RelationshipType>> GetRelationshipTypesAsync(string? namespaceUri = null, CancellationToken cancellationToken = default);
     Task<List<RelationshipType>> GetRelationshipTypesByIdsAsync(List<string> elementIds, CancellationToken cancellationToken = default);
     Task<Dictionary<string, List<ObjectInstance>>> GetRelatedObjectsAsync(List<string> elementIds, string? relationshipType = null, bool includeMetadata = false, CancellationToken cancellationToken = default);
-    Task<SubscriptionsResponse?> GetSubscriptionsAsync(CancellationToken cancellationToken = default);
-    Task<CreateSubscriptionResponse?> CreateSubscriptionAsync(CancellationToken cancellationToken = default);
-    Task<JsonElement?> GetSubscriptionAsync(string subscriptionId, CancellationToken cancellationToken = default);
-    Task<bool> DeleteSubscriptionAsync(string subscriptionId, CancellationToken cancellationToken = default);
-    Task<bool> RegisterSubscriptionItemsAsync(string subscriptionId, List<string> elementIds, int? maxDepth = 1, CancellationToken cancellationToken = default);
-    Task<bool> UnregisterSubscriptionItemsAsync(string subscriptionId, List<string> elementIds, int? maxDepth = 1, CancellationToken cancellationToken = default);
-    Task<JsonElement?> SyncSubscriptionAsync(string subscriptionId, CancellationToken cancellationToken = default);
+    Task<JsonElement?> GetSubscriptionsAsync(string clientId, List<string> subscriptionIds, CancellationToken cancellationToken = default);
+    Task<CreateSubscriptionResponse?> CreateSubscriptionAsync(string clientId, string? displayName = null, CancellationToken cancellationToken = default);
+    Task<bool> DeleteSubscriptionAsync(string clientId, string subscriptionId, CancellationToken cancellationToken = default);
+    Task<bool> RegisterSubscriptionItemsAsync(string clientId, string subscriptionId, List<string> elementIds, int? maxDepth = 1, CancellationToken cancellationToken = default);
+    Task<bool> UnregisterSubscriptionItemsAsync(string clientId, string subscriptionId, List<string> elementIds, int? maxDepth = 1, CancellationToken cancellationToken = default);
+    Task<JsonElement?> SyncSubscriptionAsync(string clientId, string subscriptionId, long? lastSequenceNumber = null, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -87,7 +86,7 @@ public class I3XClient : II3XClient, IAsyncDisposable
     public async Task<List<ObjectInstance>> GetObjectsAsync(string? typeId = null, bool includeMetadata = false, CancellationToken cancellationToken = default)
     {
         var queryParts = new List<string>();
-        if (typeId != null) queryParts.Add($"typeId={Uri.EscapeDataString(typeId)}");
+        if (typeId != null) queryParts.Add($"typeElementId={Uri.EscapeDataString(typeId)}");
         if (includeMetadata) queryParts.Add("includeMetadata=true");
 
         var queryString = queryParts.Count > 0 ? "?" + string.Join("&", queryParts) : "";
@@ -129,17 +128,41 @@ public class I3XClient : II3XClient, IAsyncDisposable
 
     public async Task<bool> WriteObjectValueAsync(string elementId, object value, string? quality = null, DateTime? timestamp = null, CancellationToken cancellationToken = default)
     {
-        object body = timestamp.HasValue || !string.IsNullOrWhiteSpace(quality)
-            ? new { value, quality = quality ?? "GOOD", timestamp = timestamp?.ToString("o") }
-            : value;
+        var body = new ObjectsWriteRequest
+        {
+            Updates =
+            [
+                new ObjectValueUpdate
+                {
+                    ElementId = elementId,
+                    Value = new Vqt<object>
+                    {
+                        Value = value,
+                        Quality = quality ?? "Good",
+                        Timestamp = timestamp
+                    }
+                }
+            ]
+        };
 
-        var response = await _httpClient.PutAsJsonAsync($"objects/{Uri.EscapeDataString(elementId)}/value", body, _jsonOptions, cancellationToken);
+        var response = await _httpClient.PutAsJsonAsync("objects/value", body, _jsonOptions, cancellationToken);
         return response.IsSuccessStatusCode;
     }
 
     public async Task<bool> WriteObjectHistoryAsync(string elementId, List<Vqt<object>> values, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.PutAsJsonAsync($"objects/{Uri.EscapeDataString(elementId)}/history", values, _jsonOptions, cancellationToken);
+        var body = new ObjectsWriteRequest
+        {
+            Updates = values
+                .Select(value => new ObjectValueUpdate
+                {
+                    ElementId = elementId,
+                    Value = value
+                })
+                .ToList()
+        };
+
+        var response = await _httpClient.PutAsJsonAsync("objects/history", body, _jsonOptions, cancellationToken);
         return response.IsSuccessStatusCode;
     }
 
@@ -167,46 +190,64 @@ public class I3XClient : II3XClient, IAsyncDisposable
         return await ReadRelatedObjectsAsync(response, elementIds, cancellationToken);
     }
 
-    public async Task<SubscriptionsResponse?> GetSubscriptionsAsync(CancellationToken cancellationToken = default)
+    public async Task<JsonElement?> GetSubscriptionsAsync(string clientId, List<string> subscriptionIds, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.GetAsync("subscriptions", cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return await ReadObjectAsync<SubscriptionsResponse>(response, cancellationToken);
-    }
+        var response = await _httpClient.PostAsJsonAsync(
+            "subscriptions/list",
+            new SubscriptionIdsRequest { ClientId = clientId, SubscriptionIds = subscriptionIds },
+            _jsonOptions,
+            cancellationToken);
 
-    public async Task<CreateSubscriptionResponse?> CreateSubscriptionAsync(CancellationToken cancellationToken = default)
-    {
-        var response = await _httpClient.PostAsJsonAsync("subscriptions", new { }, _jsonOptions, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return await ReadObjectAsync<CreateSubscriptionResponse>(response, cancellationToken);
-    }
-
-    public async Task<JsonElement?> GetSubscriptionAsync(string subscriptionId, CancellationToken cancellationToken = default)
-    {
-        var response = await _httpClient.GetAsync($"subscriptions/{Uri.EscapeDataString(subscriptionId)}", cancellationToken);
         response.EnsureSuccessStatusCode();
         return await ReadObjectAsync<JsonElement>(response, cancellationToken);
     }
 
-    public async Task<bool> DeleteSubscriptionAsync(string subscriptionId, CancellationToken cancellationToken = default)
+    public async Task<CreateSubscriptionResponse?> CreateSubscriptionAsync(string clientId, string? displayName = null, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.DeleteAsync($"subscriptions/{Uri.EscapeDataString(subscriptionId)}", cancellationToken);
+        var response = await _httpClient.PostAsJsonAsync(
+            "subscriptions",
+            new CreateSubscriptionRequest { ClientId = clientId, DisplayName = displayName },
+            _jsonOptions,
+            cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+        return await ReadObjectAsync<CreateSubscriptionResponse>(response, cancellationToken);
+    }
+
+    public async Task<bool> DeleteSubscriptionAsync(string clientId, string subscriptionId, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync(
+            "subscriptions/delete",
+            new SubscriptionIdsRequest { ClientId = clientId, SubscriptionIds = [subscriptionId] },
+            _jsonOptions,
+            cancellationToken);
+
         return response.IsSuccessStatusCode;
     }
 
-    public Task<bool> RegisterSubscriptionItemsAsync(string subscriptionId, List<string> elementIds, int? maxDepth = 1, CancellationToken cancellationToken = default)
+    public Task<bool> RegisterSubscriptionItemsAsync(string clientId, string subscriptionId, List<string> elementIds, int? maxDepth = 1, CancellationToken cancellationToken = default)
     {
-        return UpdateSubscriptionItemsAsync(subscriptionId, "register", elementIds, maxDepth, cancellationToken);
+        return UpdateSubscriptionItemsAsync(clientId, subscriptionId, "register", elementIds, maxDepth, cancellationToken);
     }
 
-    public Task<bool> UnregisterSubscriptionItemsAsync(string subscriptionId, List<string> elementIds, int? maxDepth = 1, CancellationToken cancellationToken = default)
+    public Task<bool> UnregisterSubscriptionItemsAsync(string clientId, string subscriptionId, List<string> elementIds, int? maxDepth = 1, CancellationToken cancellationToken = default)
     {
-        return UpdateSubscriptionItemsAsync(subscriptionId, "unregister", elementIds, maxDepth, cancellationToken);
+        return UpdateSubscriptionItemsAsync(clientId, subscriptionId, "unregister", elementIds, maxDepth, cancellationToken);
     }
 
-    public async Task<JsonElement?> SyncSubscriptionAsync(string subscriptionId, CancellationToken cancellationToken = default)
+    public async Task<JsonElement?> SyncSubscriptionAsync(string clientId, string subscriptionId, long? lastSequenceNumber = null, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.PostAsJsonAsync($"subscriptions/{Uri.EscapeDataString(subscriptionId)}/sync", new { }, _jsonOptions, cancellationToken);
+        var response = await _httpClient.PostAsJsonAsync(
+            "subscriptions/sync",
+            new SubscriptionSyncRequest
+            {
+                ClientId = clientId,
+                SubscriptionId = subscriptionId,
+                LastSequenceNumber = lastSequenceNumber
+            },
+            _jsonOptions,
+            cancellationToken);
+
         response.EnsureSuccessStatusCode();
         return await ReadObjectAsync<JsonElement>(response, cancellationToken);
     }
@@ -223,11 +264,17 @@ public class I3XClient : II3XClient, IAsyncDisposable
         }
     }
 
-    private async Task<bool> UpdateSubscriptionItemsAsync(string subscriptionId, string action, List<string> elementIds, int? maxDepth, CancellationToken cancellationToken)
+    private async Task<bool> UpdateSubscriptionItemsAsync(string clientId, string subscriptionId, string action, List<string> elementIds, int? maxDepth, CancellationToken cancellationToken)
     {
         var response = await _httpClient.PostAsJsonAsync(
-            $"subscriptions/{Uri.EscapeDataString(subscriptionId)}/{action}",
-            new { elementIds, maxDepth },
+            $"subscriptions/{action}",
+            new SubscriptionItemsRequest
+            {
+                ClientId = clientId,
+                SubscriptionId = subscriptionId,
+                ElementIds = elementIds,
+                MaxDepth = maxDepth
+            },
             _jsonOptions,
             cancellationToken);
 

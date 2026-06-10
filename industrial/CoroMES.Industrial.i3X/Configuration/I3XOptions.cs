@@ -16,6 +16,11 @@ public class I3XOptions
     public string? ApiKey { get; set; }
 
     /// <summary>
+    /// Stable client identifier used to scope i3X 1.0 subscriptions.
+    /// </summary>
+    public string ClientId { get; set; } = "coromes";
+
+    /// <summary>
     /// Timeout for HTTP requests in seconds.
     /// </summary>
     public int TimeoutSeconds { get; set; } = 30;

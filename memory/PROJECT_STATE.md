@@ -25,6 +25,7 @@ CoroMES is no longer just a scaffold. The repository now contains:
 - static admin and shop-floor display prototype URLs that need redirects or compatibility shims during migration
 - an i3X client and repository adapter layer
 - a CESMII i3X 1.0 standards-tracking note with exact upstream branch/tag references
+- i3X client route behavior aligned to CESMII 1.0 object filtering, bulk writes, and body-oriented subscriptions
 - a documented plan for using `soeprbp/mes-vision` as the first vision telemetry test endpoint
 - a CTI/EPS file-ingestion framework designed for safe migration work
 
@@ -97,6 +98,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - PostgreSQL migrations are checked in
 - optional i3X repository mode exists behind configuration
 - i3X standards tracking now points at CESMII branch `1.0` and tag `1.0.0`
+- i3X client calls now use `typeElementId`, bulk current/history writes, and `clientId`-scoped subscription routes
 - MES-Vision integration requirements are documented in `docs/MES_VISION_INTEGRATION.md`
 - CTI ingestion primitives are implemented and unit-tested
 - first Blazor admin auth gate protects `/admin`, `/displays/builder`, and `/api/v1/*`
@@ -109,7 +111,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - no reporting API implementation despite the project and older docs
 - no industrial API surface despite earlier documentation
 - no persisted vision telemetry model yet despite MES-Vision being identified as the first test endpoint
-- current CoroMES i3X client still needs 1.0 route-shape updates before it should be used as the MES-Vision collector foundation
+- the core i3X client is aligned to the main CESMII 1.0 route shapes, but the MES-Vision collector service and live endpoint compatibility tests still need to be built
 - first auth gate is cookie-based and suitable for migration/local control, not final enterprise identity
 - audit logging covers equipment, display definitions, and first-pass UpKeep placeholder actions so far
 - many integrations are planned boundaries rather than complete implementations
@@ -129,6 +131,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - first Blazor host integration tests started for auth and audit behavior
 - MES-Vision repository inspected and documented as a vision telemetry/i3X test endpoint
 - CESMII i3X 1.0 upstream baseline checked and documented
+- i3X client updated for CESMII 1.0 object filtering, bulk writes, and body-oriented subscription sync
 - Blazor host `Program.cs` was reduced to startup composition with route modules under `Endpoints`
 - display builder configurations now persist through EF Core and load in the viewer by slug
 - admin settings now has a scaffold for integration endpoints and feature flags, but persistence and secret storage are still pending
@@ -137,10 +140,10 @@ These projects mainly exist as structural boundaries right now. Most business lo
 ## Recommended Next Steps
 
 1. keep the Blazor auth/audit integration smoke suite green while expanding the host
-2. align the CoroMES i3X client to CESMII 1.0 route shapes, subscription scoping, sync batches, and bulk writes
-3. move UpKeep placeholder asset matching behind a dedicated mock/live integration boundary
-4. persist admin integration settings and feature flags with secret-safe storage
-5. build a read-only MES-Vision collector using i3X discovery, current values, and event history
+2. move UpKeep placeholder asset matching behind a dedicated mock/live integration boundary
+3. persist admin integration settings and feature flags with secret-safe storage
+4. build a read-only MES-Vision collector using i3X discovery, current values, and event history
+5. add MES-Vision compatibility tests against the running i3X endpoint once the target-side update settles
 6. replace the temporary admin access-code gate with the chosen enterprise identity model
 7. turn the CTI ingestion framework into a runnable connector workflow or host
 8. collect real Welch CTI sample files and source-system inventory

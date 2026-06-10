@@ -63,13 +63,24 @@ The 1.0 release changes several assumptions from earlier beta notes and from the
 - Timestamps must be UTC with `Z` and no timezone offset.
 - Error payloads use `responseDetail`.
 
-## CoroMES Implementation Implications
+## CoroMES Client Alignment
 
-- Update `CoroMES.Industrial.i3X.I3XClient` to support 1.0 route shapes before relying on MES-Vision or any other i3X endpoint.
+`CoroMES.Industrial.i3X.I3XClient` now supports the main CESMII 1.0 route shapes needed before MES-Vision collection:
+
+- `GetObjectsAsync` sends `typeElementId` when filtering objects.
+- `ObjectInstance` still exposes `TypeId` for CoroMES compatibility, while JSON reads/writes use `typeElementId` and can still read legacy `typeId`.
+- current-value writes use bulk `PUT /objects/value` with an `updates` array.
+- history writes use bulk `PUT /objects/history` with an `updates` array.
+- subscription create/list/delete/register/unregister/sync calls use body-oriented routes with `clientId` and `subscriptionId`.
+- `I3XOptions.ClientId` provides the default CoroMES subscription client identity for future collector wiring.
+
+## Remaining CoroMES Implementation Implications
+
 - Keep read-only value/history polling as the first MES-Vision collector path.
-- Add subscription sync support before SSE streaming.
+- Add a higher-level collector service that owns `clientId`, subscription lifecycle, sync acknowledgements, retry/backoff, and raw payload capture.
 - Treat SSE streaming as optional even when an endpoint advertises i3X support.
 - Normalize incoming timestamps to UTC and preserve original payload JSON for traceability.
+- Add compatibility tests against the running MES-Vision i3X endpoint once its target-side update settles.
 - Run the upstream conformance suite against any future CoroMES i3X server endpoint.
 
 ## MES-Vision Note

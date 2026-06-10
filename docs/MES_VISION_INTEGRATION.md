@@ -250,7 +250,7 @@ The official CESMII i3X baseline is tracked in `docs/I3X_STANDARDS_TRACKING.md`.
 - Official i3X 1.0 requires subscription `clientId` scoping and body-oriented subscription routes; CoroMES does not yet model that.
 - MES-Vision SSE stream is implemented, but CoroMES does not yet have a streaming i3X client method. Official i3X 1.0 treats streaming as optional, so polling/sync stays the baseline.
 
-For the first collector, prefer read-only discovery, value polling, and history polling. Keep the core i3X client aligned to CESMII 1.0, then add a MES-Vision-specific compatibility shim only where MES-Vision differs from the standard.
+For the first collector, prefer read-only discovery, value polling, and history polling. The core CoroMES i3X client now uses the main CESMII 1.0 route shapes, so add a MES-Vision-specific compatibility shim only where MES-Vision differs from the standard.
 
 ## Security Notes
 

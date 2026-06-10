@@ -26,9 +26,9 @@
 - [x] Add i3X client and repository adapter support
 - [x] Investigate `soeprbp/mes-vision` as the first i3X/vision telemetry test endpoint
 - [x] Refresh i3X standards baseline against CESMII `1.0` branch and `1.0.0` tag
+- [x] Update CoroMES i3X client for CESMII 1.0 object filtering, bulk writes, and body-oriented subscriptions
 - [ ] Refine translator type mappings where placeholder reuse still exists
 - [ ] Decide whether i3X is a primary runtime mode, a migration bridge, or both
-- [ ] Update CoroMES i3X client for CESMII 1.0 route shapes, subscription client scoping, sync batches, and bulk writes
 - [ ] Add MES-Vision compatibility coverage after the core i3X client is aligned to CESMII 1.0
 - [ ] Align translator outputs with future MCP exposure requirements
 
@@ -84,8 +84,8 @@
 1. Collect CTI source-system details and sample files
 2. Turn the CTI framework into a runnable connector host
 3. Keep the Blazor auth/audit/display integration tests green
-4. Align the CoroMES i3X client to CESMII 1.0 before building the MES-Vision collector
-5. Move UpKeep placeholder asset matching behind a dedicated mock/live integration boundary
-6. Persist admin integration settings and feature flags with secret-safe storage
-7. Build the first read-only MES-Vision collector using i3X discovery, value polling, and history polling
+4. Move UpKeep placeholder asset matching behind a dedicated mock/live integration boundary
+5. Persist admin integration settings and feature flags with secret-safe storage
+6. Build the first read-only MES-Vision collector using i3X discovery, value polling, and history polling
+7. Add MES-Vision compatibility coverage against the running i3X endpoint once the target update settles
 8. Start either implementing or pruning the reporting and industrial surfaces promised by older docs

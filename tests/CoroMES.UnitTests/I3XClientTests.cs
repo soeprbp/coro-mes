@@ -7,19 +7,19 @@ namespace CoroMES.UnitTests;
 public class I3XClientTests
 {
     [Fact]
-    public async Task GetObjectsAsync_UsesStandardTypeIdFilterAndReadsRawArray()
+    public async Task GetObjectsAsync_UsesStandardTypeElementIdFilterAndReadsRawArray()
     {
         var handler = new RecordingHandler(request =>
         {
             Assert.Equal(HttpMethod.Get, request.Method);
-            Assert.Equal("/v0/objects?typeId=work-unit-type&includeMetadata=true", request.RequestUri?.PathAndQuery);
+            Assert.Equal("/v0/objects?typeElementId=work-unit-type&includeMetadata=true", request.RequestUri?.PathAndQuery);
 
             return JsonResponse("""
                 [
                   {
                     "elementId": "pump-101",
                     "displayName": "pump-101",
-                    "typeId": "work-unit-type",
+                    "typeElementId": "work-unit-type",
                     "parentId": "pump-station",
                     "isComposition": true,
                     "namespaceUri": "https://isa.org/isa95"
@@ -35,6 +35,77 @@ public class I3XClientTests
         Assert.Single(objects);
         Assert.Equal("pump-101", objects[0].ElementId);
         Assert.Equal("work-unit-type", objects[0].TypeId);
+    }
+
+    [Fact]
+    public async Task WriteObjectValueAsync_UsesBulkCurrentValueRoute()
+    {
+        var handler = new RecordingHandler(async request =>
+        {
+            Assert.Equal(HttpMethod.Put, request.Method);
+            Assert.Equal("/v0/objects/value", request.RequestUri?.PathAndQuery);
+
+            var body = await request.Content!.ReadAsStringAsync();
+            Assert.Contains("\"updates\":[", body);
+            Assert.Contains("\"elementId\":\"pump-101\"", body);
+            Assert.Contains("\"value\":12.5", body);
+            Assert.Contains("\"quality\":\"Good\"", body);
+
+            return JsonResponse("""
+                {
+                  "success": true,
+                  "results": [
+                    { "success": true, "elementId": "pump-101", "result": null }
+                  ]
+                }
+                """);
+        });
+
+        var client = CreateClient(handler);
+
+        var written = await client.WriteObjectValueAsync("pump-101", 12.5);
+
+        Assert.True(written);
+    }
+
+    [Fact]
+    public async Task WriteObjectHistoryAsync_UsesBulkHistoryRoute()
+    {
+        var handler = new RecordingHandler(async request =>
+        {
+            Assert.Equal(HttpMethod.Put, request.Method);
+            Assert.Equal("/v0/objects/history", request.RequestUri?.PathAndQuery);
+
+            var body = await request.Content!.ReadAsStringAsync();
+            Assert.Contains("\"updates\":[", body);
+            Assert.Contains("\"elementId\":\"pump-101\"", body);
+            Assert.Contains("\"quality\":\"Good\"", body);
+            Assert.Contains("\"timestamp\":\"2026-06-10T12:00:00", body);
+
+            return JsonResponse("""
+                {
+                  "success": true,
+                  "results": [
+                    { "success": true, "elementId": "pump-101", "result": null }
+                  ]
+                }
+                """);
+        });
+
+        var client = CreateClient(handler);
+
+        var written = await client.WriteObjectHistoryAsync(
+            "pump-101",
+            [
+                new()
+                {
+                    Value = 11.5,
+                    Quality = "Good",
+                    Timestamp = new DateTime(2026, 6, 10, 12, 0, 0, DateTimeKind.Utc)
+                }
+            ]);
+
+        Assert.True(written);
     }
 
     [Fact]
@@ -241,6 +312,69 @@ public class I3XClientTests
         Assert.Single(related["camera-0"]);
         Assert.Equal("events", related["camera-0"][0].ElementId);
         Assert.Equal("MotionEvent", related["camera-0"][0].TypeId);
+    }
+
+    [Fact]
+    public async Task SubscriptionMethods_UseBodyOrientedClientScopedRoutes()
+    {
+        var seen = new List<(HttpMethod Method, string PathAndQuery, string Body)>();
+        var handler = new RecordingHandler(async request =>
+        {
+            seen.Add((
+                request.Method,
+                request.RequestUri?.PathAndQuery ?? string.Empty,
+                request.Content is null ? string.Empty : await request.Content.ReadAsStringAsync()));
+
+            return JsonResponse("""
+                {
+                  "success": true,
+                  "result": {
+                    "subscriptionId": "sub-1",
+                    "displayName": "MES Vision Collector"
+                  }
+                }
+                """);
+        });
+
+        var client = CreateClient(handler);
+
+        await client.CreateSubscriptionAsync("coromes", "MES Vision Collector");
+        await client.RegisterSubscriptionItemsAsync("coromes", "sub-1", ["camera-0"], maxDepth: 1);
+        await client.SyncSubscriptionAsync("coromes", "sub-1", lastSequenceNumber: 42);
+        await client.DeleteSubscriptionAsync("coromes", "sub-1");
+
+        Assert.Collection(
+            seen,
+            create =>
+            {
+                Assert.Equal(HttpMethod.Post, create.Method);
+                Assert.Equal("/v0/subscriptions", create.PathAndQuery);
+                Assert.Contains("\"clientId\":\"coromes\"", create.Body);
+                Assert.Contains("\"displayName\":\"MES Vision Collector\"", create.Body);
+            },
+            register =>
+            {
+                Assert.Equal(HttpMethod.Post, register.Method);
+                Assert.Equal("/v0/subscriptions/register", register.PathAndQuery);
+                Assert.Contains("\"clientId\":\"coromes\"", register.Body);
+                Assert.Contains("\"subscriptionId\":\"sub-1\"", register.Body);
+                Assert.Contains("\"elementIds\":[\"camera-0\"]", register.Body);
+            },
+            sync =>
+            {
+                Assert.Equal(HttpMethod.Post, sync.Method);
+                Assert.Equal("/v0/subscriptions/sync", sync.PathAndQuery);
+                Assert.Contains("\"clientId\":\"coromes\"", sync.Body);
+                Assert.Contains("\"subscriptionId\":\"sub-1\"", sync.Body);
+                Assert.Contains("\"lastSequenceNumber\":42", sync.Body);
+            },
+            delete =>
+            {
+                Assert.Equal(HttpMethod.Post, delete.Method);
+                Assert.Equal("/v0/subscriptions/delete", delete.PathAndQuery);
+                Assert.Contains("\"clientId\":\"coromes\"", delete.Body);
+                Assert.Contains("\"subscriptionIds\":[\"sub-1\"]", delete.Body);
+            });
     }
 
     private static I3XClient CreateClient(HttpMessageHandler handler)

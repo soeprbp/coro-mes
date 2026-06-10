@@ -68,7 +68,7 @@ public class ObjectInstance
     public string ElementId { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
 
-    [JsonPropertyName("typeId")]
+    [JsonIgnore]
     public string TypeId { get; set; } = string.Empty;
 
     [JsonIgnore]
@@ -81,10 +81,23 @@ public class ObjectInstance
     [JsonPropertyName("typeElementId")]
     public string? TypeElementIdJson
     {
-        get => null;
+        get => string.IsNullOrWhiteSpace(TypeId) ? null : TypeId;
         set
         {
             if (!string.IsNullOrWhiteSpace(value))
+            {
+                TypeId = value;
+            }
+        }
+    }
+
+    [JsonPropertyName("typeId")]
+    public string? LegacyTypeIdJson
+    {
+        get => null;
+        set
+        {
+            if (!string.IsNullOrWhiteSpace(value) && string.IsNullOrWhiteSpace(TypeId))
             {
                 TypeId = value;
             }
@@ -158,6 +171,44 @@ public class ObjectsValueRequest
 {
     public List<string> ElementIds { get; set; } = new();
     public int? MaxDepth { get; set; }
+}
+
+public class ObjectsWriteRequest
+{
+    public List<ObjectValueUpdate> Updates { get; set; } = new();
+}
+
+public class ObjectValueUpdate
+{
+    public string ElementId { get; set; } = string.Empty;
+    public Vqt<object> Value { get; set; } = new();
+}
+
+public class CreateSubscriptionRequest
+{
+    public string ClientId { get; set; } = string.Empty;
+    public string? DisplayName { get; set; }
+}
+
+public class SubscriptionIdsRequest
+{
+    public string ClientId { get; set; } = string.Empty;
+    public List<string> SubscriptionIds { get; set; } = new();
+}
+
+public class SubscriptionItemsRequest
+{
+    public string ClientId { get; set; } = string.Empty;
+    public string SubscriptionId { get; set; } = string.Empty;
+    public List<string> ElementIds { get; set; } = new();
+    public int? MaxDepth { get; set; }
+}
+
+public class SubscriptionSyncRequest
+{
+    public string ClientId { get; set; } = string.Empty;
+    public string SubscriptionId { get; set; } = string.Empty;
+    public long? LastSequenceNumber { get; set; }
 }
 
 public class CreateSubscriptionResponse
