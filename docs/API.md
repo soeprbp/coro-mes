@@ -66,7 +66,7 @@ Notes:
 
 - this endpoint is admin-protected in `CoroMES.Web`
 - returns recent audit records newest first
-- first-pass audit coverage records equipment create/update/delete, display definition create/update, and UpKeep sync/downtime actions
+- first-pass audit coverage records equipment create/update/delete, display definition create/update, UpKeep sync/downtime actions, alarm lifecycle actions, and settings update/rejection actions
 
 ### Alarms
 
@@ -88,6 +88,22 @@ Notes:
 - local default mode is mock; critical alarms default to email, SMS, Pushover, and UpKeep channels
 - live alert dispatch is guarded and returns blocked results until provider credentials, send contracts, throttling, and operator escalation rules are configured
 - create, acknowledge, and resolve actions write audit records
+
+### Settings
+
+```text
+GET /api/v1/settings
+PUT /api/v1/settings
+```
+
+Notes:
+
+- these endpoints are admin-protected in `CoroMES.Web`
+- settings persist in `ApplicationDbContext.SystemSettings`
+- only allowlisted non-secret integration endpoints, protocol settings, and feature flags can be saved
+- secret-like values such as keys, tokens, passwords, connection strings, bearer strings, and RTSP URLs are rejected
+- secret status is reported as configured/missing without returning the secret value
+- settings update and rejected update attempts write audit records
 
 ### Materials
 
@@ -201,7 +217,7 @@ The following surfaces were described in earlier docs but are not implemented in
 - work order lifecycle actions such as start and complete
 - quality write endpoints
 - enterprise identity integration and rate limiting
-- audit coverage beyond first-pass equipment mutations
+- audit coverage beyond current equipment, display, UpKeep, alarm, and settings mutations
 
 ## Response Style
 
@@ -218,6 +234,7 @@ Current automated coverage is strongest around:
 
 - CTI connector components
 - i3X client behaviors
+- Blazor auth, audit, display, UpKeep, alarm, and settings smoke coverage
 
 There is not yet broad end-to-end API integration coverage for the full route set.
 

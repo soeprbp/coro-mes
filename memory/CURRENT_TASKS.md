@@ -44,6 +44,7 @@
 - [x] Persist display builder configurations and load them through the Blazor viewer
 - [x] Expand audit logging to display definitions and UpKeep sync/downtime placeholders
 - [x] Add admin settings scaffold for integration endpoints and feature flags
+- [x] Persist allowlisted non-secret admin settings and feature flags with secret status reporting
 - [x] Move UpKeep asset matching behind a dedicated mock/disabled/live integration boundary
 - [x] Add first alarm lifecycle and guarded alerting boundary for email, SMS, Pushover, and UpKeep channels
 - [ ] Replace static admin pages with Blazor routes while preserving `/admin` compatibility
@@ -86,9 +87,8 @@
 1. Collect CTI source-system details and sample files
 2. Turn the CTI framework into a runnable connector host
 3. Keep the Blazor auth/audit/display integration tests green
-4. Persist admin integration settings and feature flags with secret-safe storage
-5. Define alert escalation rules and provider credentials before enabling live email/SMS/Pushover/UpKeep sends
-6. Build the first read-only MES-Vision collector using i3X discovery, value polling, and history polling
-7. Add MES-Vision compatibility coverage against the running i3X endpoint once the target update settles
-8. Confirm UpKeep live API details and replace guarded live-write stubs
-9. Start either implementing or pruning the reporting and industrial surfaces promised by older docs
+4. Define alert escalation rules and provider credentials before enabling live email/SMS/Pushover/UpKeep sends
+5. Build the first read-only MES-Vision collector using i3X discovery, value polling, and history polling
+6. Add MES-Vision compatibility coverage against the running i3X endpoint once the target update settles
+7. Confirm UpKeep live API details and replace guarded live-write stubs
+8. Start either implementing or pruning the reporting and industrial surfaces promised by older docs

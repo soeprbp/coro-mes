@@ -24,6 +24,7 @@ CoroMES is no longer just a scaffold. The repository now contains:
 - persisted display definitions used by the builder and viewer
 - UpKeep asset matching moved into a mock/disabled/live integration boundary
 - alarm events and guarded alerting moved into a dedicated mock/disabled/live integration boundary
+- allowlisted non-secret admin settings and feature flags persisted through `SystemSettings`
 - static admin and shop-floor display prototype URLs that need redirects or compatibility shims during migration
 - an i3X client and repository adapter layer
 - a CESMII i3X 1.0 standards-tracking note with exact upstream branch/tag references
@@ -83,7 +84,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 ### Tests
 
 - `CoroMES.UnitTests` contains real coverage for CTI ingestion and i3X client behavior
-- `CoroMES.IntegrationTests` now includes Blazor host smoke coverage for auth gates, equipment audit logging, display persistence, UpKeep asset boundary mode, UpKeep sync audit logging, and alarm lifecycle behavior
+- `CoroMES.IntegrationTests` now includes Blazor host smoke coverage for auth gates, equipment audit logging, display persistence, UpKeep asset boundary mode, UpKeep sync audit logging, alarm lifecycle behavior, and non-secret settings persistence
 
 ## What Is Working Today
 
@@ -97,6 +98,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - `CoroMES.Web` is the forward Blazor host
 - `CoroMES.Web` maps API parity through endpoint modules under `src/CoroMES.Web/Endpoints`
 - display definitions persist through `DisplayDefinition` and load in the Blazor viewer by slug
+- non-secret admin settings and feature flags persist through `SystemSetting`
 - old static admin and display URLs are expected to redirect or remain compatible during migration
 - EF Core persistence is wired up
 - PostgreSQL migrations are checked in
@@ -111,7 +113,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 
 ## Important Limitations
 
-- Blazor is now the forward UI path, but screens, redirect coverage, and settings persistence still need build-out
+- Blazor is now the forward UI path, but screens and redirect coverage still need build-out
 - no reporting API implementation despite the project and older docs
 - no industrial API surface despite earlier documentation
 - no persisted vision telemetry model yet despite MES-Vision being identified as the first test endpoint
@@ -139,7 +141,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - i3X client updated for CESMII 1.0 object filtering, bulk writes, and body-oriented subscription sync
 - Blazor host `Program.cs` was reduced to startup composition with route modules under `Endpoints`
 - display builder configurations now persist through EF Core and load in the viewer by slug
-- admin settings now has a scaffold for integration endpoints and feature flags, but persistence and secret storage are still pending
+- admin settings now persists allowlisted non-secret integration endpoints, protocol settings, and feature flags while keeping secrets in environment/user-secret/deployment configuration
 - audit coverage expanded to display definitions and UpKeep sync/downtime placeholder actions
 - UpKeep asset matching moved out of `CoroMES.Web` and into `CoroMES.Integration.Upkeep` with mock, disabled, and guarded live modes
 - Alarm events and admin alarm handling were added with mock, disabled, and guarded live alert modes for email, SMS, Pushover, and UpKeep channels
@@ -147,14 +149,13 @@ These projects mainly exist as structural boundaries right now. Most business lo
 ## Recommended Next Steps
 
 1. keep the Blazor auth/audit integration smoke suite green while expanding the host
-2. persist admin integration settings and feature flags with secret-safe storage
-3. define alert escalation rules and provider credentials before enabling live email/SMS/Pushover/UpKeep sends
-4. build a read-only MES-Vision collector using i3X discovery, current values, and event history
-5. add MES-Vision compatibility tests against the running i3X endpoint once the target-side update settles
-6. confirm UpKeep live API details and replace guarded live-write stubs
-7. replace the temporary admin access-code gate with the chosen enterprise identity model
-8. turn the CTI ingestion framework into a runnable connector workflow or host
-9. collect real Welch CTI sample files and source-system inventory
+2. define alert escalation rules and provider credentials before enabling live email/SMS/Pushover/UpKeep sends
+3. build a read-only MES-Vision collector using i3X discovery, current values, and event history
+4. add MES-Vision compatibility tests against the running i3X endpoint once the target-side update settles
+5. confirm UpKeep live API details and replace guarded live-write stubs
+6. replace the temporary admin access-code gate with the chosen enterprise identity model
+7. turn the CTI ingestion framework into a runnable connector workflow or host
+8. collect real Welch CTI sample files and source-system inventory
 
 ## Key References
 

@@ -41,6 +41,7 @@ CoroMES.Web (forward Blazor host)
   |- startup/database extensions under src/CoroMES.Web/Startup
   |- persisted display definitions
   |- alarm service and admin alarm workflow
+  |- persisted non-secret settings and feature flag workflow
   |
   v
 CoroMES.Api (backend Minimal API host)
@@ -54,7 +55,7 @@ CoroMES.Core + CoroMES.Infrastructure
   |- domain entities
   |- repository interfaces
   |- ApplicationDbContext
-  |- DisplayDefinitions, AlarmEvents, and AuditLogs
+  |- DisplayDefinitions, AlarmEvents, SystemSettings, and AuditLogs
   |- EF repositories
   |- i3X repository adapters
   |
@@ -91,6 +92,8 @@ Today, many responsibilities that would eventually move into an application laye
 The Blazor host now persists display definitions instead of relying only on hard-coded display payloads. `DisplayDefinition` records store the slug, label, type, refresh interval, active flag, optional equipment link, and future JSON settings.
 
 The Blazor host also owns the first alarm workflow. `AlarmEvent` records capture source, severity, status, optional equipment, channel list, and notification summary. Outbound notifications are routed through `CoroMES.Integration.Alerts`; mock and disabled modes are safe for local work, while live mode is intentionally guarded until provider-specific credentials and send contracts are confirmed.
+
+`SystemSetting` records persist allowlisted non-secret admin settings and feature flags. The settings service rejects secret-looking values and reports credential status from `IConfiguration` without exposing the underlying values. Startup-affecting settings remain deployment concerns until a runtime application path is deliberately expanded.
 
 ### Domain Layer
 
@@ -175,6 +178,7 @@ Notable gaps:
 - live UpKeep write behavior is still blocked pending final API contract and credential handling
 - incomplete integration tests
 - live alert dispatch is still blocked pending email/SMS/Pushover/UpKeep provider configuration, throttling, and escalation rules
+- settings persistence does not yet become a runtime configuration provider; some toggles are stored for admin workflow visibility and still require deliberate runtime integration
 
 ## Near-Term Architectural Direction
 
@@ -183,10 +187,9 @@ The cleanest next steps are:
 1. keep `CoroMES.Web` modular as the forward Blazor host
 2. turn `CoroMES.Application` into a real service/use-case layer
 3. make CTI ingestion runnable as an actual hosted connector workflow
-4. persist admin settings and feature flags with secret-safe storage
-5. preserve API route parity while replacing static URLs with redirects
-6. align the i3X client to CESMII 1.0 before building MES-Vision collection
-7. either implement or trim the planned reporting and industrial surfaces
+4. preserve API route parity while replacing static URLs with redirects
+5. align the i3X client to CESMII 1.0 before building MES-Vision collection
+6. either implement or trim the planned reporting and industrial surfaces
 
 ## Deployment Notes
 

@@ -10,6 +10,7 @@
 @inject IUpkeepIntegration UpkeepIntegration
 @inject IAlarmService AlarmService
 @inject IAlertDispatcher AlertDispatcher
+@inject ISystemSettingsService SystemSettings
 @inject IAuditLogService AuditLog
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
@@ -368,7 +369,7 @@
                             </label>
                         }
                     </div>
-                    <p class="muted">Endpoint settings are scaffolding for the forward branch. Do not enter secrets or RTSP credentials here.</p>
+                <p class="muted">Only non-secret endpoint settings are saved here. Use environment variables, user secrets, or deployment config for credentials.</p>
                 </div>
 
                 <div class="panel">
@@ -393,6 +394,18 @@
                 <label>API Base URL <input value="http://localhost:5000" readonly /></label>
                 <label>Admin Mode <input value="First auth gate enabled" readonly /></label>
                 <p class="muted">This Blazor page is protected by the migration admin gate. Replace the access-code flow with enterprise identity before production use.</p>
+                <div class="settings-list secret-status-list">
+                    @foreach (var secret in secretStatuses)
+                    {
+                        <div class="toggle-row">
+                            <span>
+                                <strong>@secret.Name</strong>
+                                <small>@secret.ConfigurationKey - @secret.Source</small>
+                            </span>
+                            <span class="pill @(secret.Configured ? "good" : "warn")">@(secret.Configured ? "Configured" : "Missing")</span>
+                        </div>
+                    }
+                </div>
                 <p class="notice">@settingsMessage</p>
             </section>
         }
@@ -400,29 +413,10 @@
 </div>
 
 @code {
-    private readonly List<ProtocolSetting> protocolSettings =
-    [
-        new("MQTT", true, "localhost", 1883),
-        new("OPC-UA", false, "opc.tcp://localhost", 4840),
-        new("Ethernet/IP", false, "192.168.1.10", 44818)
-    ];
-
-    private readonly List<IntegrationEndpointSetting> integrationEndpoints =
-    [
-        new("MES-Vision i3X", "http://localhost:5002/v1/", "read-only", "http://localhost:5002/v1/"),
-        new("MES-Vision Dashboard", "http://localhost:5000/", "disabled", "http://localhost:5000/"),
-        new("UpKeep", "", "mock", "https://api.onupkeep.com/")
-    ];
-
-    private readonly List<FeatureFlagSetting> featureFlags =
-    [
-        new("Blazor display persistence", "Save shop-floor display definitions in CoroMES.", true),
-        new("MES-Vision collector", "Enable the future read-only vision telemetry collector.", false),
-        new("Alarm alerting", "Route alarm events to configured notification channels.", true),
-        new("i3X repository mode", "Use i3X-backed repositories instead of EF-backed repositories.", false),
-        new("Enterprise identity", "Replace the migration access-code gate.", false)
-    ];
-
+    private List<ProtocolSettingDto> protocolSettings = [];
+    private List<IntegrationEndpointSettingDto> integrationEndpoints = [];
+    private List<FeatureFlagSettingDto> featureFlags = [];
+    private List<SecretStatusDto> secretStatuses = [];
     private List<Equipment> equipment = [];
     private List<UpkeepAsset> upkeepAssets = [];
     private List<AlarmEvent> alarms = [];
@@ -489,6 +483,7 @@
     {
         section = ResolveSection();
         upkeepAssets = (await UpkeepIntegration.GetAssetsAsync()).ToList();
+        await LoadSettings();
         await LoadEquipment();
         await LoadAlarms();
     }
@@ -782,9 +777,52 @@
         protocolMessage = $"Protocol settings saved at {DateTime.Now:t}.";
     }
 
-    private void SaveSystemSettings()
+    private async Task LoadSettings()
     {
-        settingsMessage = $"Settings scaffold saved at {DateTime.Now:t}. Persistence and secret storage are still pending.";
+        var snapshot = await SystemSettings.GetSnapshotAsync();
+        integrationEndpoints = snapshot.IntegrationEndpoints.ToList();
+        protocolSettings = snapshot.ProtocolSettings.ToList();
+        featureFlags = snapshot.FeatureFlags.ToList();
+        secretStatuses = snapshot.SecretStatuses.ToList();
+    }
+
+    private async Task SaveSystemSettings()
+    {
+        var actor = await GetCurrentActorAsync();
+        try
+        {
+            var snapshot = await SystemSettings.SaveAsync(new SystemSettingsUpdateRequest(
+                integrationEndpoints,
+                protocolSettings,
+                featureFlags), actor);
+
+            await AuditLog.RecordAsync(null, new AuditLogEntry(
+                "Update",
+                nameof(SystemSetting),
+                null,
+                "Updated non-secret system settings.",
+                Actor: actor,
+                Route: "/admin/settings"));
+
+            integrationEndpoints = snapshot.IntegrationEndpoints.ToList();
+            protocolSettings = snapshot.ProtocolSettings.ToList();
+            featureFlags = snapshot.FeatureFlags.ToList();
+            secretStatuses = snapshot.SecretStatuses.ToList();
+            settingsMessage = $"Settings saved at {DateTime.Now:t}. Secrets remain in environment/user-secret/deployment config.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            await AuditLog.RecordAsync(null, new AuditLogEntry(
+                "UpdateRejected",
+                nameof(SystemSetting),
+                null,
+                $"Rejected non-secret settings update: {ex.Message}",
+                Succeeded: false,
+                Actor: actor,
+                Route: "/admin/settings"));
+
+            settingsMessage = ex.Message;
+        }
     }
 
     private async Task<string> GetCurrentActorAsync()
@@ -817,29 +855,6 @@
         AlarmStatus.Resolved => "good",
         _ => "neutral"
     };
-
-    private sealed class ProtocolSetting(string name, bool enabled, string host, int port)
-    {
-        public string Name { get; } = name;
-        public bool Enabled { get; set; } = enabled;
-        public string Host { get; set; } = host;
-        public int Port { get; set; } = port;
-    }
-
-    private sealed class IntegrationEndpointSetting(string name, string baseUrl, string mode, string placeholder)
-    {
-        public string Name { get; } = name;
-        public string BaseUrl { get; set; } = baseUrl;
-        public string Mode { get; set; } = mode;
-        public string Placeholder { get; } = placeholder;
-    }
-
-    private sealed class FeatureFlagSetting(string name, string description, bool enabled)
-    {
-        public string Name { get; } = name;
-        public string Description { get; } = description;
-        public bool Enabled { get; set; } = enabled;
-    }
 
     private sealed class AlarmDraft
     {

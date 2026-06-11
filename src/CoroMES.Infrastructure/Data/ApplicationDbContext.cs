@@ -36,6 +36,9 @@ public class ApplicationDbContext : DbContext
     // Alarms
     public DbSet<AlarmEvent> AlarmEvents => Set<AlarmEvent>();
 
+    // Settings
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+
     // Displays
     public DbSet<DisplayDefinition> DisplayDefinitions => Set<DisplayDefinition>();
 
@@ -67,6 +70,17 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Type).IsRequired().HasMaxLength(40);
             entity.Property(e => e.SettingsJson).HasMaxLength(4000);
             entity.HasIndex(e => e.Slug).IsUnique();
+        });
+
+        modelBuilder.Entity<SystemSetting>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Key).IsRequired().HasMaxLength(120);
+            entity.Property(e => e.Category).IsRequired().HasMaxLength(80);
+            entity.Property(e => e.Value).IsRequired().HasMaxLength(1000);
+            entity.Property(e => e.Description).HasMaxLength(300);
+            entity.HasIndex(e => e.Key).IsUnique();
+            entity.HasIndex(e => e.Category);
         });
 
         // Material

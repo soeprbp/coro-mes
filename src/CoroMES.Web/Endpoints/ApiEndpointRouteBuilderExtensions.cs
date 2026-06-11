@@ -8,6 +8,7 @@ public static class ApiEndpointRouteBuilderExtensions
 
         api.MapAuditEndpoints();
         api.MapAlarmEndpoints();
+        api.MapSettingsEndpoints();
         api.MapWorkOrderEndpoints();
         api.MapEquipmentEndpoints();
         api.MapUpkeepEndpoints();

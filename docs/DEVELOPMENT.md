@@ -155,6 +155,19 @@ $env:Alerting__CriticalChannels__3 = "upkeep"
 
 Do not enter notification provider credentials in the Blazor settings scaffold. Use environment variables, user secrets, or deployment configuration. Live email, SMS, Pushover, and UpKeep dispatch should stay blocked until credentials, throttling, audit expectations, and escalation rules are explicitly reviewed.
 
+### Admin Settings Persistence
+
+The Blazor host persists allowlisted non-secret admin settings through `ApplicationDbContext.SystemSettings`.
+
+```text
+GET /api/v1/settings
+PUT /api/v1/settings
+```
+
+Safe values include integration base URLs, non-secret modes, protocol hosts/ports, and feature flag states. Do not store access codes, API keys, bearer tokens, passwords, connection strings, SMTP/SMS/Pushover credentials, RTSP URLs, or private key material in this table or UI. The settings page reports secret status as configured or missing based on environment/user-secret/deployment configuration.
+
+Some settings affect startup behavior, such as repository mode or live integration wiring. Treat those as deployment-time configuration until a runtime application path is explicitly implemented.
+
 ### 1. Create Entity (Core)
 
 ```csharp

@@ -59,6 +59,7 @@ builder.Services.AddAlertingIntegration(builder.Configuration);
 builder.Services.AddUpkeepIntegration(builder.Configuration);
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IAlarmService, AlarmService>();
+builder.Services.AddScoped<ISystemSettingsService, SystemSettingsService>();
 
 var dbProvider = builder.Configuration.GetValue<string>("DatabaseProvider") ?? "sqlite";
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");

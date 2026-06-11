@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using CoroMES.Core.Entities;
 using CoroMES.Core.Enums;
+using CoroMES.Web.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
@@ -25,12 +26,14 @@ public class BlazorHostAuthAndAuditTests
         var admin = await client.GetAsync("/admin/equipment");
         var builder = await client.GetAsync("/displays/builder");
         var equipmentApi = await client.GetAsync("/api/v1/equipment");
+        var settingsApi = await client.GetAsync("/api/v1/settings");
 
         Assert.Equal(HttpStatusCode.OK, health.StatusCode);
         Assert.Equal(HttpStatusCode.OK, viewer.StatusCode);
         Assert.Equal(HttpStatusCode.Redirect, admin.StatusCode);
         Assert.Equal(HttpStatusCode.Redirect, builder.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, equipmentApi.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, settingsApi.StatusCode);
         Assert.Equal("/login", admin.Headers.Location?.AbsolutePath);
         Assert.Equal("/login", builder.Headers.Location?.AbsolutePath);
     }
@@ -224,6 +227,57 @@ public class BlazorHostAuthAndAuditTests
         Assert.Contains(audit!, log => log.Action == "Create" && log.EntityId == created.Id && log.Succeeded);
         Assert.Contains(audit!, log => log.Action == "Acknowledge" && log.EntityId == created.Id && log.Succeeded);
         Assert.Contains(audit!, log => log.Action == "Resolve" && log.EntityId == created.Id && log.Succeeded);
+    }
+
+    [Fact]
+    public async Task Settings_api_persists_non_secret_values_rejects_secret_like_values_and_audits()
+    {
+        using var factory = new CoroMesWebFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            HandleCookies = true
+        });
+
+        await SignInAsync(client);
+
+        var snapshot = await client.GetFromJsonAsync<SystemSettingsSnapshot>("/api/v1/settings", JsonOptions);
+        Assert.NotNull(snapshot);
+        Assert.Contains(snapshot!.FeatureFlags, flag => flag.Key == "Feature.MesVisionCollector");
+        Assert.Contains(snapshot.SecretStatuses, secret => secret.Name == "Admin access code" && secret.Configured);
+
+        var mesVision = snapshot.IntegrationEndpoints.Single(endpoint => endpoint.BaseUrlKey == "Integration.MesVisionI3X.BaseUrl");
+        mesVision.BaseUrl = "http://localhost:5010/v1/";
+        mesVision.Mode = "read-only";
+
+        var collectorFlag = snapshot.FeatureFlags.Single(flag => flag.Key == "Feature.MesVisionCollector");
+        var collectorTargetValue = !collectorFlag.Enabled;
+        collectorFlag.Enabled = collectorTargetValue;
+
+        var update = await client.PutAsJsonAsync("/api/v1/settings", new SystemSettingsUpdateRequest(
+            snapshot.IntegrationEndpoints,
+            snapshot.ProtocolSettings,
+            snapshot.FeatureFlags));
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+
+        var updated = await update.Content.ReadFromJsonAsync<SystemSettingsSnapshot>(JsonOptions);
+        Assert.NotNull(updated);
+        Assert.Contains(updated!.IntegrationEndpoints, endpoint => endpoint.BaseUrlKey == "Integration.MesVisionI3X.BaseUrl" && endpoint.BaseUrl == "http://localhost:5010/v1/");
+        Assert.Contains(updated.FeatureFlags, flag => flag.Key == "Feature.MesVisionCollector" && flag.Enabled == collectorTargetValue);
+
+        var rejectedEndpoint = updated.IntegrationEndpoints.Single(endpoint => endpoint.BaseUrlKey == "Integration.MesVisionI3X.BaseUrl");
+        rejectedEndpoint.BaseUrl = "https://example.test/?token=should-not-store";
+
+        var rejected = await client.PutAsJsonAsync("/api/v1/settings", new SystemSettingsUpdateRequest(
+            updated.IntegrationEndpoints,
+            updated.ProtocolSettings,
+            updated.FeatureFlags));
+        Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
+
+        var audit = await client.GetFromJsonAsync<AuditLogDto[]>("/api/v1/audit?entityName=SystemSetting&take=20", JsonOptions);
+        Assert.NotNull(audit);
+        Assert.Contains(audit!, log => log.Action == "Update" && log.Succeeded);
+        Assert.Contains(audit!, log => log.Action == "UpdateRejected" && !log.Succeeded);
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
