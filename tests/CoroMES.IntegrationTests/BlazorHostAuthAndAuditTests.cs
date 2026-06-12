@@ -7,6 +7,7 @@ using CoroMES.Web.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CoroMES.IntegrationTests;
 
@@ -278,6 +279,32 @@ public class BlazorHostAuthAndAuditTests
         Assert.NotNull(audit);
         Assert.Contains(audit!, log => log.Action == "Update" && log.Succeeded);
         Assert.Contains(audit!, log => log.Action == "UpdateRejected" && !log.Succeeded);
+    }
+
+    [Fact]
+    public async Task Settings_service_scopes_saved_values_by_user()
+    {
+        using var factory = new CoroMesWebFactory();
+        using var scope = factory.Services.CreateScope();
+        var settings = scope.ServiceProvider.GetRequiredService<ISystemSettingsService>();
+
+        var alice = await settings.GetSnapshotAsync("Alice Admin");
+        var aliceEndpoint = alice.IntegrationEndpoints.Single(endpoint => endpoint.BaseUrlKey == "Integration.MesVisionI3X.BaseUrl");
+        aliceEndpoint.BaseUrl = "http://alice.local/v1/";
+        await settings.SaveAsync(new SystemSettingsUpdateRequest(alice.IntegrationEndpoints, alice.ProtocolSettings, alice.FeatureFlags), "Alice Admin");
+
+        var bob = await settings.GetSnapshotAsync("Bob Admin");
+        var bobEndpoint = bob.IntegrationEndpoints.Single(endpoint => endpoint.BaseUrlKey == "Integration.MesVisionI3X.BaseUrl");
+        bobEndpoint.BaseUrl = "http://bob.local/v1/";
+        await settings.SaveAsync(new SystemSettingsUpdateRequest(bob.IntegrationEndpoints, bob.ProtocolSettings, bob.FeatureFlags), "Bob Admin");
+
+        var aliceReloaded = await settings.GetSnapshotAsync("Alice Admin");
+        var bobReloaded = await settings.GetSnapshotAsync("Bob Admin");
+
+        Assert.Equal("Alice Admin", aliceReloaded.UserId);
+        Assert.Equal("Bob Admin", bobReloaded.UserId);
+        Assert.Contains(aliceReloaded.IntegrationEndpoints, endpoint => endpoint.BaseUrlKey == "Integration.MesVisionI3X.BaseUrl" && endpoint.BaseUrl == "http://alice.local/v1/");
+        Assert.Contains(bobReloaded.IntegrationEndpoints, endpoint => endpoint.BaseUrlKey == "Integration.MesVisionI3X.BaseUrl" && endpoint.BaseUrl == "http://bob.local/v1/");
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);

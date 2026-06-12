@@ -99,7 +99,7 @@ PUT /api/v1/settings
 Notes:
 
 - these endpoints are admin-protected in `CoroMES.Web`
-- settings persist in `ApplicationDbContext.SystemSettings`
+- settings persist per user in `ApplicationDbContext.SystemSettings`
 - only allowlisted non-secret integration endpoints, protocol settings, and feature flags can be saved
 - secret-like values such as keys, tokens, passwords, connection strings, bearer strings, and RTSP URLs are rejected
 - secret status is reported as configured/missing without returning the secret value

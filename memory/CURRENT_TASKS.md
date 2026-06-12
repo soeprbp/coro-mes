@@ -44,7 +44,7 @@
 - [x] Persist display builder configurations and load them through the Blazor viewer
 - [x] Expand audit logging to display definitions and UpKeep sync/downtime placeholders
 - [x] Add admin settings scaffold for integration endpoints and feature flags
-- [x] Persist allowlisted non-secret admin settings and feature flags with secret status reporting
+- [x] Persist allowlisted non-secret admin settings and feature flags per user with secret status reporting
 - [x] Move UpKeep asset matching behind a dedicated mock/disabled/live integration boundary
 - [x] Add first alarm lifecycle and guarded alerting boundary for email, SMS, Pushover, and UpKeep channels
 - [ ] Replace static admin pages with Blazor routes while preserving `/admin` compatibility

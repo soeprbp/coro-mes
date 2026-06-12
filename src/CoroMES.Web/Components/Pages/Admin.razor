@@ -345,7 +345,7 @@
         else if (section == "settings")
         {
             <header class="page-header">
-                <div><p class="eyebrow">System</p><h1>Settings</h1></div>
+                <div><p class="eyebrow">System</p><h1>Settings</h1><p class="muted">Editing settings for @settingsUserId</p></div>
                 <button class="button primary" @onclick="SaveSystemSettings">Save</button>
             </header>
             <section class="split-layout">
@@ -417,6 +417,7 @@
     private List<IntegrationEndpointSettingDto> integrationEndpoints = [];
     private List<FeatureFlagSettingDto> featureFlags = [];
     private List<SecretStatusDto> secretStatuses = [];
+    private string settingsUserId = "unknown";
     private List<Equipment> equipment = [];
     private List<UpkeepAsset> upkeepAssets = [];
     private List<AlarmEvent> alarms = [];
@@ -779,7 +780,8 @@
 
     private async Task LoadSettings()
     {
-        var snapshot = await SystemSettings.GetSnapshotAsync();
+        var snapshot = await SystemSettings.GetSnapshotAsync(await GetCurrentActorAsync());
+        settingsUserId = snapshot.UserId;
         integrationEndpoints = snapshot.IntegrationEndpoints.ToList();
         protocolSettings = snapshot.ProtocolSettings.ToList();
         featureFlags = snapshot.FeatureFlags.ToList();
@@ -808,6 +810,7 @@
             protocolSettings = snapshot.ProtocolSettings.ToList();
             featureFlags = snapshot.FeatureFlags.ToList();
             secretStatuses = snapshot.SecretStatuses.ToList();
+            settingsUserId = snapshot.UserId;
             settingsMessage = $"Settings saved at {DateTime.Now:t}. Secrets remain in environment/user-secret/deployment config.";
         }
         catch (InvalidOperationException ex)

@@ -6,7 +6,7 @@ namespace CoroMES.Web.Services;
 
 public interface ISystemSettingsService
 {
-    Task<SystemSettingsSnapshot> GetSnapshotAsync(CancellationToken cancellationToken = default);
+    Task<SystemSettingsSnapshot> GetSnapshotAsync(string userId, CancellationToken cancellationToken = default);
     Task<SystemSettingsSnapshot> SaveAsync(SystemSettingsUpdateRequest request, string actor, CancellationToken cancellationToken = default);
 }
 
@@ -39,11 +39,13 @@ public sealed class SystemSettingsService(ApplicationDbContext db, IConfiguratio
         new("Enterprise identity", "Feature.EnterpriseIdentity", "Replace the migration access-code gate.", false)
     ];
 
-    public async Task<SystemSettingsSnapshot> GetSnapshotAsync(CancellationToken cancellationToken = default)
+    public async Task<SystemSettingsSnapshot> GetSnapshotAsync(string userId, CancellationToken cancellationToken = default)
     {
-        var values = await LoadValuesAsync(cancellationToken);
+        var normalizedUserId = NormalizeUserId(userId);
+        var values = await LoadValuesAsync(normalizedUserId, cancellationToken);
 
         return new SystemSettingsSnapshot(
+            normalizedUserId,
             DefaultIntegrationEndpoints.Select(endpoint => new IntegrationEndpointSettingDto(
                 endpoint.Name,
                 endpoint.BaseUrlKey,
@@ -69,7 +71,10 @@ public sealed class SystemSettingsService(ApplicationDbContext db, IConfiguratio
 
     public async Task<SystemSettingsSnapshot> SaveAsync(SystemSettingsUpdateRequest request, string actor, CancellationToken cancellationToken = default)
     {
-        var existing = await db.SystemSettings.ToDictionaryAsync(setting => setting.Key, cancellationToken);
+        var normalizedUserId = NormalizeUserId(actor);
+        var existing = await db.SystemSettings
+            .Where(setting => setting.UserId == normalizedUserId)
+            .ToDictionaryAsync(setting => setting.Key, cancellationToken);
         var now = DateTime.UtcNow;
 
         foreach (var endpoint in MergeIntegrationEndpoints(request.IntegrationEndpoints))
@@ -95,14 +100,20 @@ public sealed class SystemSettingsService(ApplicationDbContext db, IConfiguratio
         }
 
         await db.SaveChangesAsync(cancellationToken);
-        return await GetSnapshotAsync(cancellationToken);
+        return await GetSnapshotAsync(normalizedUserId, cancellationToken);
     }
 
-    private async Task<Dictionary<string, string>> LoadValuesAsync(CancellationToken cancellationToken)
+    private async Task<Dictionary<string, string>> LoadValuesAsync(string userId, CancellationToken cancellationToken)
     {
-        return await db.SystemSettings
+        var settings = await db.SystemSettings
             .AsNoTracking()
-            .ToDictionaryAsync(setting => setting.Key, setting => setting.Value, cancellationToken);
+            .Where(setting => setting.UserId == null || setting.UserId == userId)
+            .OrderBy(setting => setting.UserId == null ? 0 : 1)
+            .ToListAsync(cancellationToken);
+
+        return settings
+            .GroupBy(setting => setting.Key)
+            .ToDictionary(group => group.Key, group => group.Last().Value);
     }
 
     private static IEnumerable<IntegrationEndpointSettingDto> MergeIntegrationEndpoints(IReadOnlyList<IntegrationEndpointSettingDto>? incoming)
@@ -163,6 +174,7 @@ public sealed class SystemSettingsService(ApplicationDbContext db, IConfiguratio
 
         var created = new SystemSetting
         {
+            UserId = NormalizeUserId(actor),
             Key = key,
             Category = category,
             Value = value,
@@ -173,6 +185,12 @@ public sealed class SystemSettingsService(ApplicationDbContext db, IConfiguratio
 
         existing[key] = created;
         db.SystemSettings.Add(created);
+    }
+
+    private static string NormalizeUserId(string? userId)
+    {
+        var normalized = Clean(userId, 120);
+        return string.IsNullOrWhiteSpace(normalized) ? "unknown" : normalized;
     }
 
     private IReadOnlyList<SecretStatusDto> GetSecretStatuses()
@@ -274,6 +292,7 @@ public sealed class SystemSettingsService(ApplicationDbContext db, IConfiguratio
 }
 
 public sealed record SystemSettingsSnapshot(
+    string UserId,
     IReadOnlyList<IntegrationEndpointSettingDto> IntegrationEndpoints,
     IReadOnlyList<ProtocolSettingDto> ProtocolSettings,
     IReadOnlyList<FeatureFlagSettingDto> FeatureFlags,

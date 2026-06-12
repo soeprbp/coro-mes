@@ -157,7 +157,7 @@ Do not enter notification provider credentials in the Blazor settings scaffold. 
 
 ### Admin Settings Persistence
 
-The Blazor host persists allowlisted non-secret admin settings through `ApplicationDbContext.SystemSettings`.
+The Blazor host persists allowlisted non-secret admin settings per user through `ApplicationDbContext.SystemSettings`.
 
 ```text
 GET /api/v1/settings
@@ -166,7 +166,7 @@ PUT /api/v1/settings
 
 Safe values include integration base URLs, non-secret modes, protocol hosts/ports, and feature flag states. Do not store access codes, API keys, bearer tokens, passwords, connection strings, SMTP/SMS/Pushover credentials, RTSP URLs, or private key material in this table or UI. The settings page reports secret status as configured or missing based on environment/user-secret/deployment configuration.
 
-Some settings affect startup behavior, such as repository mode or live integration wiring. Treat those as deployment-time configuration until a runtime application path is explicitly implemented.
+Some settings affect startup behavior, such as repository mode or live integration wiring. Treat those as deployment-time configuration until a runtime application path is explicitly implemented. With the temporary access-code gate, the current user id is the admin claim name; enterprise identity will make these settings truly individual by named user.
 
 ### 1. Create Entity (Core)
 

@@ -75,11 +75,12 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<SystemSetting>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.UserId).HasMaxLength(120);
             entity.Property(e => e.Key).IsRequired().HasMaxLength(120);
             entity.Property(e => e.Category).IsRequired().HasMaxLength(80);
             entity.Property(e => e.Value).IsRequired().HasMaxLength(1000);
             entity.Property(e => e.Description).HasMaxLength(300);
-            entity.HasIndex(e => e.Key).IsUnique();
+            entity.HasIndex(e => new { e.UserId, e.Key }).IsUnique();
             entity.HasIndex(e => e.Category);
         });
 

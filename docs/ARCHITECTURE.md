@@ -93,7 +93,7 @@ The Blazor host now persists display definitions instead of relying only on hard
 
 The Blazor host also owns the first alarm workflow. `AlarmEvent` records capture source, severity, status, optional equipment, channel list, and notification summary. Outbound notifications are routed through `CoroMES.Integration.Alerts`; mock and disabled modes are safe for local work, while live mode is intentionally guarded until provider-specific credentials and send contracts are confirmed.
 
-`SystemSetting` records persist allowlisted non-secret admin settings and feature flags. The settings service rejects secret-looking values and reports credential status from `IConfiguration` without exposing the underlying values. Startup-affecting settings remain deployment concerns until a runtime application path is deliberately expanded.
+`SystemSetting` records persist allowlisted non-secret admin settings and feature flags per user. The settings service rejects secret-looking values and reports credential status from `IConfiguration` without exposing the underlying values. Startup-affecting settings remain deployment concerns until a runtime application path is deliberately expanded.
 
 ### Domain Layer
 

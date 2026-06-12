@@ -24,7 +24,7 @@ CoroMES is no longer just a scaffold. The repository now contains:
 - persisted display definitions used by the builder and viewer
 - UpKeep asset matching moved into a mock/disabled/live integration boundary
 - alarm events and guarded alerting moved into a dedicated mock/disabled/live integration boundary
-- allowlisted non-secret admin settings and feature flags persisted through `SystemSettings`
+- allowlisted non-secret admin settings and feature flags persisted per user through `SystemSettings`
 - static admin and shop-floor display prototype URLs that need redirects or compatibility shims during migration
 - an i3X client and repository adapter layer
 - a CESMII i3X 1.0 standards-tracking note with exact upstream branch/tag references
@@ -98,7 +98,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - `CoroMES.Web` is the forward Blazor host
 - `CoroMES.Web` maps API parity through endpoint modules under `src/CoroMES.Web/Endpoints`
 - display definitions persist through `DisplayDefinition` and load in the Blazor viewer by slug
-- non-secret admin settings and feature flags persist through `SystemSetting`
+- non-secret admin settings and feature flags persist per user through `SystemSetting`
 - old static admin and display URLs are expected to redirect or remain compatible during migration
 - EF Core persistence is wired up
 - PostgreSQL migrations are checked in
@@ -141,7 +141,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - i3X client updated for CESMII 1.0 object filtering, bulk writes, and body-oriented subscription sync
 - Blazor host `Program.cs` was reduced to startup composition with route modules under `Endpoints`
 - display builder configurations now persist through EF Core and load in the viewer by slug
-- admin settings now persists allowlisted non-secret integration endpoints, protocol settings, and feature flags while keeping secrets in environment/user-secret/deployment configuration
+- admin settings now persists allowlisted non-secret integration endpoints, protocol settings, and feature flags per user while keeping secrets in environment/user-secret/deployment configuration
 - audit coverage expanded to display definitions and UpKeep sync/downtime placeholder actions
 - UpKeep asset matching moved out of `CoroMES.Web` and into `CoroMES.Integration.Upkeep` with mock, disabled, and guarded live modes
 - Alarm events and admin alarm handling were added with mock, disabled, and guarded live alert modes for email, SMS, Pushover, and UpKeep channels

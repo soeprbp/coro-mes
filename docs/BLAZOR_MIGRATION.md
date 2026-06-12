@@ -150,5 +150,5 @@ Suggested forward mappings:
 - Display definitions persist through `/api/v1/displays` and load in `/displays/viewer?id={slug}`.
 - UpKeep asset lookup, sync, and downtime calls go through `CoroMES.Integration.Upkeep` and write audit records.
 - Alarm create, acknowledge, and resolve calls persist `AlarmEvent` records, call `CoroMES.Integration.Alerts`, and write audit records.
-- Settings updates persist allowlisted non-secret `SystemSetting` records, reject secret-looking values, report secret status without exposing values, and write audit records.
+- Settings updates persist allowlisted non-secret `SystemSetting` records by user, reject secret-looking values, report secret status without exposing values, and write audit records.
 - `/displays/viewer?id=preview&type=oee` remains reachable without admin sign-in.

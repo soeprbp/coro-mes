@@ -32,7 +32,7 @@ For a stricter local gate:
 - Medium: audit logging currently covers equipment, display definitions, and first-pass UpKeep actions. Expand audit coverage to all work order, material, operator, live integration, and future write actions.
 - Medium: live UpKeep mode requires API credentials and has guarded write stubs. Keep credentials in environment/user-secret/deployment configuration and confirm the live write contract before enabling writes.
 - Medium: live alerting mode is intentionally guarded. Do not enable real email/SMS/Pushover/UpKeep sends until provider credentials, allow-listed recipients, throttling, escalation rules, failure handling, and audit expectations are configured outside source control.
-- Medium: `SystemSettings` persists non-secret admin settings and feature flags only. Keep secret-looking values rejected, avoid arbitrary key editors, and do not treat DB flags as a stronger security boundary than the temporary admin access-code gate can support.
+- Medium: `SystemSettings` persists non-secret admin settings and feature flags per user only. Keep secret-looking values rejected, avoid arbitrary key editors, and do not treat DB flags as a stronger security boundary than the temporary admin access-code gate can support.
 - Medium: development config uses wildcard hosts, sample database passwords, anonymous MQTT, and HTTP i3X defaults. Keep these local-only and require environment overrides for shared environments.
 - Medium: CTI raw/quarantine/archive payloads may contain customer, schedule, production, or order data. Keep payload directories out of Git and restrict filesystem permissions.
 

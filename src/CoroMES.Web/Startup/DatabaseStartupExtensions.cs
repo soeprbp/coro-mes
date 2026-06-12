@@ -224,6 +224,7 @@ public static class DatabaseStartupExtensions
                     "UpdatedAt" timestamp with time zone NULL,
                     "CreatedBy" text NULL,
                     "UpdatedBy" text NULL,
+                    "UserId" character varying(120) NULL,
                     "Key" character varying(120) NOT NULL,
                     "Category" character varying(80) NOT NULL,
                     "Value" character varying(1000) NOT NULL,
@@ -241,6 +242,7 @@ public static class DatabaseStartupExtensions
                     "UpdatedAt" TEXT NULL,
                     "CreatedBy" TEXT NULL,
                     "UpdatedBy" TEXT NULL,
+                    "UserId" TEXT NULL,
                     "Key" TEXT NOT NULL,
                     "Category" TEXT NOT NULL,
                     "Value" TEXT NOT NULL,
@@ -249,13 +251,42 @@ public static class DatabaseStartupExtensions
                 """);
         }
 
+        await EnsureSystemSettingsUserIdColumnAsync(db, dbProvider);
+
         await db.Database.ExecuteSqlRawAsync("""
-            CREATE UNIQUE INDEX IF NOT EXISTS "IX_SystemSettings_Key" ON "SystemSettings" ("Key");
+            DROP INDEX IF EXISTS "IX_SystemSettings_Key";
+            """);
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_SystemSettings_UserId_Key" ON "SystemSettings" ("UserId", "Key");
             """);
 
         await db.Database.ExecuteSqlRawAsync("""
             CREATE INDEX IF NOT EXISTS "IX_SystemSettings_Category" ON "SystemSettings" ("Category");
             """);
+    }
+
+    private static async Task EnsureSystemSettingsUserIdColumnAsync(ApplicationDbContext db, string dbProvider)
+    {
+        if (string.Equals(dbProvider, "postgres", StringComparison.OrdinalIgnoreCase))
+        {
+            await db.Database.ExecuteSqlRawAsync("""
+                ALTER TABLE "SystemSettings" ADD COLUMN IF NOT EXISTS "UserId" character varying(120) NULL;
+                """);
+
+            return;
+        }
+
+        var columns = await db.Database
+            .SqlQueryRaw<string>("SELECT name AS Value FROM pragma_table_info('SystemSettings');")
+            .ToListAsync();
+
+        if (!columns.Contains("UserId", StringComparer.OrdinalIgnoreCase))
+        {
+            await db.Database.ExecuteSqlRawAsync("""
+                ALTER TABLE "SystemSettings" ADD COLUMN "UserId" TEXT NULL;
+                """);
+        }
     }
 
     private static async Task SeedDisplayDefinitionsAsync(ApplicationDbContext db)

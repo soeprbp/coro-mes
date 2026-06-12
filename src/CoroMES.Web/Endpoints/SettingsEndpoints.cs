@@ -7,9 +7,10 @@ public static class SettingsEndpoints
 {
     public static RouteGroupBuilder MapSettingsEndpoints(this RouteGroupBuilder api)
     {
-        api.MapGet("/settings", async (ISystemSettingsService settings, CancellationToken cancellationToken) =>
+        api.MapGet("/settings", async (ISystemSettingsService settings, HttpContext context, CancellationToken cancellationToken) =>
         {
-            return Results.Ok(await settings.GetSnapshotAsync(cancellationToken));
+            var actor = context.User.Identity?.Name ?? "unknown";
+            return Results.Ok(await settings.GetSnapshotAsync(actor, cancellationToken));
         })
         .WithName("GetSystemSettings")
         .WithTags("Settings");
