@@ -22,6 +22,7 @@
     <ProjectReference Include="..\..\src\CoroMES.Core\CoroMES.Core.csproj" />
     <ProjectReference Include="..\..\src\CoroMES.Application\CoroMES.Application.csproj" />
     <ProjectReference Include="..\..\integration\CoroMES.Integration.Cti\CoroMES.Integration.Cti.csproj" />
+    <ProjectReference Include="..\..\integration\CoroMES.Integration.IIoT\CoroMES.Integration.IIoT.csproj" />
     <ProjectReference Include="..\..\industrial\CoroMES.Industrial.i3X\CoroMES.Industrial.i3X.csproj" />
   </ItemGroup>
 

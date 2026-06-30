@@ -1,6 +1,6 @@
 # MES-Vision Integration Plan
 
-**Last Updated:** 2026-06-10
+**Last Updated:** 2026-06-30
 
 ## Purpose
 
@@ -10,7 +10,7 @@
 
 - Repository: `soeprbp/mes-vision`
 - Visibility: private
-- Local investigation copy: `C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\mes-vision`
+- Local investigation copy: external to CoroMES; use a non-OneDrive workspace such as `C:\scripts\external\mes-vision`
 - Current branch inspected: `master`
 - Current head inspected: `a3aead6`
 
@@ -25,6 +25,11 @@
 | i3X API | `http://localhost:5002/v1/*` | CESMII-style object/value/history/subscription API |
 | i3X proxy | `http://localhost:5000/i3x/*` | Proxy through the dashboard host for tunnels |
 | SocketIO | dashboard host | Live status and motion events for browser clients |
+
+Current remote test endpoint:
+
+- Dashboard: `https://rocktumbler.57446516.xyz/`
+- i3X API through dashboard proxy: `https://rocktumbler.57446516.xyz/i3x/v1/`
 
 ### Data Domains
 
@@ -184,6 +189,7 @@ Add a vision telemetry boundary rather than storing raw frames in the MES databa
 | `VisionCameraId` | parent camera |
 | `ElementId` | i3X zone id |
 | `Name` | zone name |
+| `EquipmentId` | optional equipment mapping |
 | `Enabled` | last known enabled state |
 
 ### Time-Series History
@@ -268,11 +274,22 @@ For the first collector, prefer read-only discovery, value polling, and history 
 - Kaylee: keep memory files and dashboard/reporting checklists current as telemetry work advances.
 - Jane: review endpoint exposure, tunnel usage, credentials, and any future write/control path.
 
+## Current CoroMES Implementation
+
+- `integration/CoroMES.Integration.IIoT` contains a read-only MES-Vision i3X collector.
+- `MesVisionCollector` config points at `https://rocktumbler.57446516.xyz/i3x/v1/` by default.
+- Background polling is disabled by default; manual collection is available through `POST /api/v1/integration/mes-vision/collect`.
+- The collector polls `/info`, `/objects`, `/objects/value`, and `/objects/history`.
+- EF persistence now includes `VisionSources`, `VisionCameras`, `VisionZones`, `VisionReadings`, and `VisionEvents`.
+- Admin-protected endpoints expose sources, mapping rows, recent readings, and recent events under `/api/v1/integration/mes-vision/*`.
+- `/admin/vision` maps collected cameras and zones to CoroMES equipment.
+- Camera and zone equipment mapping updates validate equipment ids, support clearing the mapping, and write `VisionCamera`/`VisionZone` audit records.
+- Unit coverage normalizes captured Rocktumbler-style i3X camera, zone, rotation, and event payloads.
+- Integration coverage verifies camera/zone mapping API behavior and audit logging.
+
 ## Next Implementation Steps
 
-1. Add CoroMES config for one or more MES-Vision endpoints.
-2. Add read-only client tests against captured MES-Vision i3X payloads.
-3. Add a `VisionSources`/`VisionReadings`/`VisionEvents` persistence migration.
-4. Build a hosted collector that polls i3X objects, values, and event history.
-5. Add admin UI for mapping MES-Vision cameras/zones to CoroMES equipment.
-6. Add dashboard cards and reporting queries from normalized `VisionReadings` and `VisionEvents`.
+1. Add dashboard cards and reporting queries from normalized `VisionReadings` and `VisionEvents`, grouped through the camera/zone equipment mappings.
+2. Add optional live compatibility tests against the running Rocktumbler i3X endpoint without making the normal test suite network-dependent.
+3. Decide whether MES-Vision collector configuration should be user-editable at runtime or deployment-only.
+4. Add SSE subscription support only after polling is stable and recoverable.

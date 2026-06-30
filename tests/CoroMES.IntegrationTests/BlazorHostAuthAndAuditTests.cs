@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using CoroMES.Core.Entities;
 using CoroMES.Core.Enums;
+using CoroMES.Infrastructure.Data;
 using CoroMES.Web.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -282,6 +283,108 @@ public class BlazorHostAuthAndAuditTests
     }
 
     [Fact]
+    public async Task MesVision_mapping_api_links_cameras_and_zones_to_equipment_and_audits()
+    {
+        using var factory = new CoroMesWebFactory();
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var equipment = new Equipment
+        {
+            Code = $"VIS-{Guid.NewGuid():N}"[..12],
+            Name = "Vision Test Machine",
+            Type = EquipmentType.Machine,
+            Status = EquipmentStatus.Available,
+            Location = "Vision Cell"
+        };
+
+        var source = new VisionSource
+        {
+            ExternalSystemId = $"mes-vision-{Guid.NewGuid():N}",
+            DisplayName = "MES-Vision Test Rig",
+            EndpointBaseUrl = "http://localhost:5010/i3x/v1/",
+            IsActive = true,
+            LastSeenAtUtc = DateTime.UtcNow
+        };
+
+        var camera = new VisionCamera
+        {
+            VisionSource = source,
+            ElementId = $"camera-{Guid.NewGuid():N}",
+            DisplayName = "Camera 1",
+            SlotId = "0",
+            Source = "USB Camera 0",
+            SourceType = "usb",
+            IsActive = true,
+            LastSeenAtUtc = DateTime.UtcNow,
+            LastStatus = "online"
+        };
+
+        var zone = new VisionZone
+        {
+            VisionSource = source,
+            VisionCamera = camera,
+            ElementId = $"zone-{Guid.NewGuid():N}",
+            Name = "Feed Zone",
+            Enabled = true,
+            LastSeenAtUtc = DateTime.UtcNow,
+            LastStatus = "active",
+            LastMotionPercent = 42.5
+        };
+
+        db.Equipment.Add(equipment);
+        db.VisionSources.Add(source);
+        db.VisionCameras.Add(camera);
+        db.VisionZones.Add(zone);
+        await db.SaveChangesAsync();
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            HandleCookies = true
+        });
+
+        await SignInAsync(client);
+
+        var initial = await client.GetFromJsonAsync<MesVisionMappingSnapshotDto>("/api/v1/integration/mes-vision/mappings", JsonOptions);
+        Assert.NotNull(initial);
+        Assert.Contains(initial!.Equipment, item => item.Id == equipment.Id);
+        Assert.Contains(initial.Cameras, item => item.Id == camera.Id && item.EquipmentId is null);
+        Assert.Contains(initial.Zones, item => item.Id == zone.Id && item.EquipmentId is null);
+
+        var cameraMap = await client.PutAsJsonAsync($"/api/v1/integration/mes-vision/cameras/{camera.Id}/equipment", new
+        {
+            equipmentId = equipment.Id
+        });
+        var zoneMap = await client.PutAsJsonAsync($"/api/v1/integration/mes-vision/zones/{zone.Id}/equipment", new
+        {
+            equipmentId = equipment.Id
+        });
+
+        Assert.Equal(HttpStatusCode.OK, cameraMap.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, zoneMap.StatusCode);
+
+        var updated = await client.GetFromJsonAsync<MesVisionMappingSnapshotDto>("/api/v1/integration/mes-vision/mappings", JsonOptions);
+        Assert.NotNull(updated);
+        Assert.Contains(updated!.Cameras, item => item.Id == camera.Id && item.EquipmentId == equipment.Id);
+        Assert.Contains(updated.Zones, item => item.Id == zone.Id && item.EquipmentId == equipment.Id);
+
+        var invalid = await client.PutAsJsonAsync($"/api/v1/integration/mes-vision/cameras/{camera.Id}/equipment", new
+        {
+            equipmentId = 987654
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+
+        var cameraAudit = await client.GetFromJsonAsync<AuditLogDto[]>("/api/v1/audit?entityName=VisionCamera&take=10", JsonOptions);
+        var zoneAudit = await client.GetFromJsonAsync<AuditLogDto[]>("/api/v1/audit?entityName=VisionZone&take=10", JsonOptions);
+        Assert.NotNull(cameraAudit);
+        Assert.NotNull(zoneAudit);
+        Assert.Contains(cameraAudit!, log => log.Action == "MapEquipment" && log.EntityId == camera.Id && log.Succeeded);
+        Assert.Contains(cameraAudit!, log => log.Action == "MapEquipment" && log.EntityId == camera.Id && !log.Succeeded);
+        Assert.Contains(zoneAudit!, log => log.Action == "MapEquipment" && log.EntityId == zone.Id && log.Succeeded);
+    }
+
+    [Fact]
     public async Task Settings_service_scopes_saved_values_by_user()
     {
         using var factory = new CoroMesWebFactory();
@@ -358,6 +461,30 @@ public class BlazorHostAuthAndAuditTests
         public string Status { get; set; } = string.Empty;
         public string? AlertChannels { get; set; }
         public string NotificationSummary { get; set; } = string.Empty;
+    }
+
+    private sealed class MesVisionMappingSnapshotDto
+    {
+        public MesVisionEquipmentOptionDto[] Equipment { get; set; } = [];
+        public MesVisionCameraMappingDto[] Cameras { get; set; } = [];
+        public MesVisionZoneMappingDto[] Zones { get; set; } = [];
+    }
+
+    private sealed class MesVisionEquipmentOptionDto
+    {
+        public int Id { get; set; }
+    }
+
+    private sealed class MesVisionCameraMappingDto
+    {
+        public int Id { get; set; }
+        public int? EquipmentId { get; set; }
+    }
+
+    private sealed class MesVisionZoneMappingDto
+    {
+        public int Id { get; set; }
+        public int? EquipmentId { get; set; }
     }
 
     private sealed class CoroMesWebFactory : WebApplicationFactory<Program>

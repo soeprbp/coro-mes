@@ -42,6 +42,13 @@ public class ApplicationDbContext : DbContext
     // Displays
     public DbSet<DisplayDefinition> DisplayDefinitions => Set<DisplayDefinition>();
 
+    // Vision telemetry
+    public DbSet<VisionSource> VisionSources => Set<VisionSource>();
+    public DbSet<VisionCamera> VisionCameras => Set<VisionCamera>();
+    public DbSet<VisionZone> VisionZones => Set<VisionZone>();
+    public DbSet<VisionReading> VisionReadings => Set<VisionReading>();
+    public DbSet<VisionEvent> VisionEvents => Set<VisionEvent>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -70,6 +77,65 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Type).IsRequired().HasMaxLength(40);
             entity.Property(e => e.SettingsJson).HasMaxLength(4000);
             entity.HasIndex(e => e.Slug).IsUnique();
+        });
+
+        modelBuilder.Entity<VisionSource>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ExternalSystemId).IsRequired().HasMaxLength(120);
+            entity.Property(e => e.DisplayName).IsRequired().HasMaxLength(160);
+            entity.Property(e => e.EndpointBaseUrl).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.DashboardBaseUrl).HasMaxLength(500);
+            entity.Property(e => e.LastError).HasMaxLength(1000);
+            entity.HasIndex(e => e.ExternalSystemId).IsUnique();
+            entity.HasIndex(e => e.IsActive);
+        });
+
+        modelBuilder.Entity<VisionCamera>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ElementId).IsRequired().HasMaxLength(160);
+            entity.Property(e => e.DisplayName).IsRequired().HasMaxLength(160);
+            entity.Property(e => e.SlotId).HasMaxLength(80);
+            entity.Property(e => e.Source).HasMaxLength(200);
+            entity.Property(e => e.SourceType).HasMaxLength(80);
+            entity.Property(e => e.LastStatus).HasMaxLength(80);
+            entity.HasIndex(e => new { e.VisionSourceId, e.ElementId }).IsUnique();
+            entity.HasIndex(e => e.EquipmentId);
+        });
+
+        modelBuilder.Entity<VisionZone>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ElementId).IsRequired().HasMaxLength(160);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(160);
+            entity.Property(e => e.LastStatus).HasMaxLength(80);
+            entity.HasIndex(e => new { e.VisionSourceId, e.ElementId }).IsUnique();
+            entity.HasIndex(e => e.VisionCameraId);
+            entity.HasIndex(e => e.EquipmentId);
+        });
+
+        modelBuilder.Entity<VisionReading>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ElementId).IsRequired().HasMaxLength(160);
+            entity.Property(e => e.Metric).IsRequired().HasMaxLength(120);
+            entity.Property(e => e.TextValue).HasMaxLength(500);
+            entity.Property(e => e.Quality).HasMaxLength(80);
+            entity.Property(e => e.RawJson).IsRequired().HasMaxLength(4000);
+            entity.HasIndex(e => e.OccurredAtUtc);
+            entity.HasIndex(e => new { e.VisionSourceId, e.ElementId, e.Metric, e.OccurredAtUtc }).IsUnique();
+        });
+
+        modelBuilder.Entity<VisionEvent>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Source).HasMaxLength(200);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(80);
+            entity.Property(e => e.Region).HasMaxLength(160);
+            entity.Property(e => e.RawJson).IsRequired().HasMaxLength(4000);
+            entity.HasIndex(e => e.OccurredAtUtc);
+            entity.HasIndex(e => new { e.VisionSourceId, e.OccurredAtUtc, e.Status });
         });
 
         modelBuilder.Entity<SystemSetting>(entity =>
@@ -161,6 +227,78 @@ public class ApplicationDbContext : DbContext
             .HasOne(d => d.Equipment)
             .WithMany()
             .HasForeignKey(d => d.EquipmentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<VisionSource>()
+            .HasOne(v => v.Equipment)
+            .WithMany()
+            .HasForeignKey(v => v.EquipmentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<VisionCamera>()
+            .HasOne(v => v.VisionSource)
+            .WithMany(v => v.Cameras)
+            .HasForeignKey(v => v.VisionSourceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<VisionCamera>()
+            .HasOne(v => v.Equipment)
+            .WithMany()
+            .HasForeignKey(v => v.EquipmentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<VisionZone>()
+            .HasOne(v => v.VisionSource)
+            .WithMany(v => v.Zones)
+            .HasForeignKey(v => v.VisionSourceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<VisionZone>()
+            .HasOne(v => v.VisionCamera)
+            .WithMany(v => v.Zones)
+            .HasForeignKey(v => v.VisionCameraId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<VisionZone>()
+            .HasOne(v => v.Equipment)
+            .WithMany()
+            .HasForeignKey(v => v.EquipmentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<VisionReading>()
+            .HasOne(v => v.VisionSource)
+            .WithMany()
+            .HasForeignKey(v => v.VisionSourceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<VisionReading>()
+            .HasOne(v => v.VisionCamera)
+            .WithMany()
+            .HasForeignKey(v => v.VisionCameraId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<VisionReading>()
+            .HasOne(v => v.VisionZone)
+            .WithMany()
+            .HasForeignKey(v => v.VisionZoneId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<VisionEvent>()
+            .HasOne(v => v.VisionSource)
+            .WithMany()
+            .HasForeignKey(v => v.VisionSourceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<VisionEvent>()
+            .HasOne(v => v.VisionCamera)
+            .WithMany()
+            .HasForeignKey(v => v.VisionCameraId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<VisionEvent>()
+            .HasOne(v => v.VisionZone)
+            .WithMany()
+            .HasForeignKey(v => v.VisionZoneId)
             .OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<BillOfMaterials>()

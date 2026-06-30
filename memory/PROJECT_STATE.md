@@ -1,6 +1,6 @@
 # CoroMES Project State
 
-**Last Updated:** 2026-06-10
+**Last Updated:** 2026-06-30
 
 ## Overall Status
 
@@ -9,6 +9,8 @@
 - **Framework:** .NET 10
 - **Forward UI Host:** `src/CoroMES.Web`
 - **Backend API Host:** `src/CoroMES.Api`
+- **Current Blazor Workspace:** `C:\scripts\coroMES\CoroMES-blazor`
+- **Preserved Pre-Blazor Workspace:** `C:\scripts\coroMES\CoroMES`
 - **Default Local Database:** SQLite
 - **Production-Intended Database:** PostgreSQL
 
@@ -30,6 +32,8 @@ CoroMES is no longer just a scaffold. The repository now contains:
 - a CESMII i3X 1.0 standards-tracking note with exact upstream branch/tag references
 - i3X client route behavior aligned to CESMII 1.0 object filtering, bulk writes, and body-oriented subscriptions
 - a documented plan for using `soeprbp/mes-vision` as the first vision telemetry test endpoint
+- a read-only MES-Vision collector foundation pointed at the Rocktumbler i3X test endpoint
+- a MES-Vision camera/zone-to-equipment mapping UI and protected API surface
 - a CTI/EPS file-ingestion framework designed for safe migration work
 
 The codebase still stops short of a full MES application. Several architectural boundaries exist as project shells or planned expansion points rather than finished product areas.
@@ -70,7 +74,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 | CoroMES.Integration.Cti | Active framework for file discovery, raw capture, parsing, validation, quarantine |
 | CoroMES.Integration.Alerts | Active guarded boundary for email, SMS, Pushover, and UpKeep alarm notification paths |
 | CoroMES.Integration.Upkeep | Active mock/disabled/live boundary for UpKeep asset lookup, sync, and downtime adapter work |
-| CoroMES.Integration.IIoT | Planned boundary; likely home for the MES-Vision collector or shared telemetry ingestion patterns |
+| CoroMES.Integration.IIoT | Active read-only MES-Vision i3X collector and shared telemetry ingestion boundary |
 
 ### Industrial Layer (`industrial/`)
 
@@ -84,7 +88,7 @@ These projects mainly exist as structural boundaries right now. Most business lo
 ### Tests
 
 - `CoroMES.UnitTests` contains real coverage for CTI ingestion and i3X client behavior
-- `CoroMES.IntegrationTests` now includes Blazor host smoke coverage for auth gates, equipment audit logging, display persistence, UpKeep asset boundary mode, UpKeep sync audit logging, alarm lifecycle behavior, and non-secret settings persistence
+- `CoroMES.IntegrationTests` now includes Blazor host smoke coverage for auth gates, equipment audit logging, display persistence, UpKeep asset boundary mode, UpKeep sync audit logging, alarm lifecycle behavior, non-secret settings persistence, and MES-Vision equipment mapping
 
 ## What Is Working Today
 
@@ -106,6 +110,9 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - i3X standards tracking now points at CESMII branch `1.0` and tag `1.0.0`
 - i3X client calls now use `typeElementId`, bulk current/history writes, and `clientId`-scoped subscription routes
 - MES-Vision integration requirements are documented in `docs/MES_VISION_INTEGRATION.md`
+- MES-Vision collection can poll `https://rocktumbler.57446516.xyz/i3x/v1/`, persist source/camera/zone inventory, normalize readings, and store event history
+- `/admin/vision` maps collected MES-Vision cameras and zones to CoroMES equipment
+- MES-Vision mapping endpoints validate equipment ids, support clearing mappings, and write audit records
 - CTI ingestion primitives are implemented and unit-tested
 - first Blazor admin auth gate protects `/admin`, `/displays/builder`, and `/api/v1/*`
 - first-pass audit logging records equipment create/update/delete, display definition create/update, UpKeep sync/downtime actions, and alarm create/acknowledge/resolve actions
@@ -116,8 +123,8 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - Blazor is now the forward UI path, but screens and redirect coverage still need build-out
 - no reporting API implementation despite the project and older docs
 - no industrial API surface despite earlier documentation
-- no persisted vision telemetry model yet despite MES-Vision being identified as the first test endpoint
-- the core i3X client is aligned to the main CESMII 1.0 route shapes, but the MES-Vision collector service and live endpoint compatibility tests still need to be built
+- persisted vision telemetry and camera/zone-to-equipment mapping exist, but dashboard/reporting widgets still need to be built
+- the MES-Vision collector uses read-only polling; live endpoint compatibility tests and optional SSE subscription support still need to be built
 - first auth gate is cookie-based and suitable for migration/local control, not final enterprise identity
 - audit logging covers equipment, display definitions, first-pass UpKeep boundary actions, and alarm lifecycle actions so far
 - UpKeep now has a concrete integration boundary, but live writes are still guarded pending final API details and credentials
@@ -132,7 +139,8 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - CTI ingestion project with file discovery, capture, parser, validator, and pipeline
 - security audit documentation and helper script additions in the working tree
 - Blazor fork preservation at branch/tag `pre-blazor-2026-06-10`
-- source backup zip captured at `C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\CoroMES-source-backup-2026-06-10.zip`
+- source backup zip captured at `C:\scripts\coroMES\CoroMES-source-backup-2026-06-10.zip`
+- active CoroMES workspaces moved out of OneDrive under `C:\scripts\coroMES`
 - Jane security pass added the first Blazor admin/API auth gate
 - first audit foundation added `AuditLog` storage and equipment mutation logging
 - first Blazor host integration tests started for auth and audit behavior
@@ -145,17 +153,18 @@ These projects mainly exist as structural boundaries right now. Most business lo
 - audit coverage expanded to display definitions and UpKeep sync/downtime placeholder actions
 - UpKeep asset matching moved out of `CoroMES.Web` and into `CoroMES.Integration.Upkeep` with mock, disabled, and guarded live modes
 - Alarm events and admin alarm handling were added with mock, disabled, and guarded live alert modes for email, SMS, Pushover, and UpKeep channels
+- MES-Vision collector foundation added source/camera/zone/readings/events storage, Rocktumbler i3X config, manual collection endpoints, and normalizer unit coverage
+- MES-Vision camera/zone equipment mapping added `/admin/vision`, protected mapping endpoints, zone `EquipmentId` persistence, audit logging, and integration coverage
 
 ## Recommended Next Steps
 
 1. keep the Blazor auth/audit integration smoke suite green while expanding the host
 2. define alert escalation rules and provider credentials before enabling live email/SMS/Pushover/UpKeep sends
-3. build a read-only MES-Vision collector using i3X discovery, current values, and event history
-4. add MES-Vision compatibility tests against the running i3X endpoint once the target-side update settles
+3. add dashboard/reporting widgets from persisted `VisionReadings` and `VisionEvents`
+4. add optional live MES-Vision compatibility checks against the running Rocktumbler endpoint
 5. confirm UpKeep live API details and replace guarded live-write stubs
 6. replace the temporary admin access-code gate with the chosen enterprise identity model
 7. turn the CTI ingestion framework into a runnable connector workflow or host
-8. collect real Welch CTI sample files and source-system inventory
 
 ## Key References
 

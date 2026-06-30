@@ -1,6 +1,7 @@
 using CoroMES.Core.Interfaces.Repositories;
 using CoroMES.Industrial.i3X;
 using CoroMES.Integration.Alerts;
+using CoroMES.Integration.IIoT;
 using CoroMES.Integration.Upkeep;
 using CoroMES.Infrastructure.Data;
 using CoroMES.Infrastructure.Repositories;
@@ -56,10 +57,13 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddAlertingIntegration(builder.Configuration);
+builder.Services.AddMesVisionCollector(builder.Configuration);
 builder.Services.AddUpkeepIntegration(builder.Configuration);
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IAlarmService, AlarmService>();
+builder.Services.AddScoped<IMesVisionCollectorRunner, MesVisionCollectorRunner>();
 builder.Services.AddScoped<ISystemSettingsService, SystemSettingsService>();
+builder.Services.AddHostedService<MesVisionCollectorHostedService>();
 
 var dbProvider = builder.Configuration.GetValue<string>("DatabaseProvider") ?? "sqlite";
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");

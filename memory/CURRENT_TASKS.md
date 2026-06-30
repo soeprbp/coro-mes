@@ -1,6 +1,6 @@
 # Current Tasks
 
-**Last Updated:** 2026-06-10
+**Last Updated:** 2026-06-30
 
 ## Active Work
 
@@ -27,6 +27,7 @@
 - [x] Investigate `soeprbp/mes-vision` as the first i3X/vision telemetry test endpoint
 - [x] Refresh i3X standards baseline against CESMII `1.0` branch and `1.0.0` tag
 - [x] Update CoroMES i3X client for CESMII 1.0 object filtering, bulk writes, and body-oriented subscriptions
+- [x] Add read-only MES-Vision collector foundation against the Rocktumbler i3X endpoint
 - [ ] Refine translator type mappings where placeholder reuse still exists
 - [ ] Decide whether i3X is a primary runtime mode, a migration bridge, or both
 - [ ] Add MES-Vision compatibility coverage after the core i3X client is aligned to CESMII 1.0
@@ -36,7 +37,8 @@
 
 - [x] Establish `CoroMES.Web` as the forward Blazor host for admin and shop-floor display workflows
 - [x] Preserve the pre-Blazor source state at branch/tag `pre-blazor-2026-06-10`
-- [x] Record backup zip path: `C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\CoroMES-source-backup-2026-06-10.zip`
+- [x] Record backup zip path: `C:\scripts\coroMES\CoroMES-source-backup-2026-06-10.zip`
+- [x] Move active CoroMES workspaces out of OneDrive under `C:\scripts\coroMES`
 - [x] Add first Blazor admin/API auth gate from Jane security pass
 - [x] Add first-pass audit logging for equipment create/update/delete
 - [x] Add integration coverage for Blazor auth gates and equipment audit logging
@@ -55,8 +57,8 @@
 
 - [ ] Decide whether to implement the documented reporting API or reduce its documented scope
 - [ ] Decide whether to implement the documented industrial API or reduce its documented scope
-- [ ] Add MES-Vision source registry, telemetry readings, and event history storage
-- [ ] Add admin mapping for MES-Vision cameras/zones to CoroMES equipment
+- [x] Add MES-Vision source registry, telemetry readings, and event history storage
+- [x] Add admin mapping for MES-Vision cameras/zones to CoroMES equipment
 - [ ] Add dashboard/reporting widgets for vision-derived runtime, idle time, camera health, and zone activity
 - [ ] Replace guarded UpKeep live-write stubs with confirmed live API calls after credentials/API contract are available
 - [ ] Replace guarded alerting stubs with confirmed provider adapters after credentials, throttling, and escalation rules are reviewed
@@ -70,6 +72,7 @@
 - [x] Unit test i3X client behavior
 - [x] Add API integration tests for the current Blazor migration smoke surface
 - [x] Keep Blazor auth and audit integration tests running as the migration smoke suite
+- [x] Add integration coverage for MES-Vision camera/zone equipment mapping and audit logging
 - [ ] Add persistence-mode coverage for SQLite and PostgreSQL
 - [ ] Add CTI end-to-end ingestion tests with representative sample files
 
@@ -88,7 +91,6 @@
 2. Turn the CTI framework into a runnable connector host
 3. Keep the Blazor auth/audit/display integration tests green
 4. Define alert escalation rules and provider credentials before enabling live email/SMS/Pushover/UpKeep sends
-5. Build the first read-only MES-Vision collector using i3X discovery, value polling, and history polling
-6. Add MES-Vision compatibility coverage against the running i3X endpoint once the target update settles
+5. Add dashboard/reporting widgets for vision-derived runtime, idle time, camera health, and zone activity
+6. Add optional live MES-Vision compatibility checks that do not make the normal test suite network-dependent
 7. Confirm UpKeep live API details and replace guarded live-write stubs
-8. Start either implementing or pruning the reporting and industrial surfaces promised by older docs

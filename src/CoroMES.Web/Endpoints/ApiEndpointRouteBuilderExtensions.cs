@@ -12,6 +12,7 @@ public static class ApiEndpointRouteBuilderExtensions
         api.MapWorkOrderEndpoints();
         api.MapEquipmentEndpoints();
         api.MapUpkeepEndpoints();
+        api.MapMesVisionEndpoints();
         api.MapMaterialEndpoints();
         api.MapOperatorEndpoints();
         api.MapQualityEndpoints();

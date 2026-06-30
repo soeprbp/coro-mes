@@ -1,6 +1,6 @@
 # i3X Standards Tracking
 
-**Last Updated:** 2026-06-10
+**Last Updated:** 2026-06-18
 
 ## Current Upstream Baseline
 
@@ -13,7 +13,7 @@ CoroMES should track CESMII i3X as a moving standard, but the current implementa
 | Latest checked branch commit | `bbaded54e057718916e2ed5d67cd065f691799d3` |
 | Latest checked release tag | `1.0.0` |
 | Tag commit checked | `34b766442f6ef614d47fe905459a2ea8b91c6f8b` |
-| Local upstream inspection copy | `C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\i3X-upstream` |
+| Local upstream inspection copy | external to CoroMES; use a non-OneDrive workspace such as `C:\scripts\external\i3X-upstream` |
 | Normative guide | `spec/IMPLEMENTATION_GUIDE.md` |
 | Conformance suite | `conformance-tests/` |
 
@@ -23,10 +23,10 @@ Before changing any CoroMES i3X client, repository adapter, translator, MES-Visi
 
 1. Fetch upstream:
    ```powershell
-   git -C "..\i3X-upstream" fetch origin 1.0 --depth 1
-   git -C "..\i3X-upstream" switch 1.0
-   git -C "..\i3X-upstream" reset --hard origin/1.0
-   git -C "..\i3X-upstream" rev-parse HEAD
+   git -C "C:\scripts\external\i3X-upstream" fetch origin 1.0 --depth 1
+   git -C "C:\scripts\external\i3X-upstream" switch 1.0
+   git -C "C:\scripts\external\i3X-upstream" reset --hard origin/1.0
+   git -C "C:\scripts\external\i3X-upstream" rev-parse HEAD
    ```
 2. Check upstream release/tag state:
    ```powershell

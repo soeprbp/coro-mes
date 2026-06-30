@@ -371,7 +371,8 @@ th {
 .activity-list,
 .display-list,
 .settings-list,
-.alarm-list {
+.alarm-list,
+.mapping-list {
     display: grid;
     gap: 10px;
 }
@@ -424,6 +425,30 @@ th {
 
 .alarm-card.neutral {
     border-left-color: var(--muted);
+}
+
+.mapping-card {
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #ffffff;
+}
+
+.mapping-card h3,
+.mapping-card p {
+    margin: 0;
+}
+
+.mapping-card small {
+    color: var(--muted);
+}
+
+.mapping-card > div:first-child {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
 }
 
 .channel-list {

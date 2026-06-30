@@ -9,10 +9,12 @@ This Blazor fork makes `src/CoroMES.Web` the forward user-facing host for CoroME
 ## Preservation Points
 
 - Preservation branch/tag: `pre-blazor-2026-06-10`
-- Source backup zip: `C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\CoroMES-source-backup-2026-06-10.zip`
-- Blazor fork workspace: `C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\CoroMES-blazor`
+- Source backup zip: `C:\scripts\coroMES\CoroMES-source-backup-2026-06-10.zip`
+- Blazor fork workspace: `C:\scripts\coroMES\CoroMES-blazor`
+- Preserved pre-Blazor workspace: `C:\scripts\coroMES\CoroMES`
 
 Use the preservation branch/tag and backup zip as the reference point for the pre-Blazor Minimal API plus static web implementation.
+The CoroMES workspace was moved out of OneDrive on 2026-06-18. Keep new CoroMES work under `C:\scripts\coroMES`.
 
 ## Forward Host
 
@@ -33,12 +35,12 @@ This is a migration gate, not the final identity model. Before production use, r
 
 ## Audit Logging
 
-The first audit foundation records equipment create/update/delete actions from both the Blazor admin page and the JSON API. It now also covers display definition create/update actions, UpKeep sync/downtime placeholder actions, alarm create/acknowledge/resolve actions, and settings update/rejection actions.
+The first audit foundation records equipment create/update/delete actions from both the Blazor admin page and the JSON API. It now also covers display definition create/update actions, UpKeep sync/downtime placeholder actions, alarm create/acknowledge/resolve actions, settings update/rejection actions, and MES-Vision camera/zone equipment mapping actions.
 
 - Entity: `AuditLog`
 - Storage: `ApplicationDbContext.AuditLogs`
 - Read endpoint: `GET /api/v1/audit`
-- Covered entities today: `Equipment`, `DisplayDefinition`, `AlarmEvent`, `SystemSetting`, and first-pass `Upkeep` integration actions
+- Covered entities today: `Equipment`, `DisplayDefinition`, `AlarmEvent`, `SystemSetting`, `VisionCamera`, `VisionZone`, and first-pass `Upkeep` integration actions
 
 The next audit expansion should cover work orders, materials, operators, persisted settings changes, and any future i3X or industrial write paths.
 
@@ -58,7 +60,7 @@ The team should move the Blazor fork forward in this order:
 
 1. Keep the auth and audit integration smoke suite green as a migration guardrail.
 2. Replace guarded alerting send stubs with provider-specific adapters only after credentials, throttling, and escalation rules are reviewed.
-3. Build the first read-only MES-Vision collector using the aligned i3X client.
+3. Add dashboard/reporting widgets from mapped MES-Vision camera/zone telemetry.
 4. Add UpKeep live asset-read compatibility once credentials and API details are available.
 5. Start moving endpoint behavior into application services where workflows are no longer simple CRUD.
 
@@ -97,6 +99,13 @@ GET    /api/v1/quality/ncr
 GET    /api/v1/integration/upkeep/assets
 POST   /api/v1/integration/upkeep/sync
 POST   /api/v1/integration/upkeep/downtime
+POST   /api/v1/integration/mes-vision/collect
+GET    /api/v1/integration/mes-vision/sources
+GET    /api/v1/integration/mes-vision/mappings
+PUT    /api/v1/integration/mes-vision/cameras/{id}/equipment
+PUT    /api/v1/integration/mes-vision/zones/{id}/equipment
+GET    /api/v1/integration/mes-vision/readings
+GET    /api/v1/integration/mes-vision/events
 GET    /api/v1/displays
 GET    /api/v1/displays/{id}
 POST   /api/v1/displays
@@ -149,6 +158,8 @@ Suggested forward mappings:
 - Equipment create/update/delete writes audit records.
 - Display definitions persist through `/api/v1/displays` and load in `/displays/viewer?id={slug}`.
 - UpKeep asset lookup, sync, and downtime calls go through `CoroMES.Integration.Upkeep` and write audit records.
+- MES-Vision manual collection polls the configured read-only i3X endpoint and persists source, camera, zone, reading, and event records.
+- MES-Vision mapping endpoints and `/admin/vision` link collected cameras/zones to CoroMES equipment and write audit records.
 - Alarm create, acknowledge, and resolve calls persist `AlarmEvent` records, call `CoroMES.Integration.Alerts`, and write audit records.
 - Settings updates persist allowlisted non-secret `SystemSetting` records by user, reject secret-looking values, report secret status without exposing values, and write audit records.
 - `/displays/viewer?id=preview&type=oee` remains reachable without admin sign-in.

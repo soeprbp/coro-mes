@@ -155,6 +155,32 @@ $env:Alerting__CriticalChannels__3 = "upkeep"
 
 Do not enter notification provider credentials in the Blazor settings scaffold. Use environment variables, user secrets, or deployment configuration. Live email, SMS, Pushover, and UpKeep dispatch should stay blocked until credentials, throttling, audit expectations, and escalation rules are explicitly reviewed.
 
+### MES-Vision Collector
+
+The Blazor host registers the read-only MES-Vision collector through `AddMesVisionCollector`.
+
+```powershell
+$env:MesVisionCollector__Enabled = "false" # default; manual collect endpoint still works
+$env:MesVisionCollector__I3XBaseUrl = "https://rocktumbler.57446516.xyz/i3x/v1/"
+$env:MesVisionCollector__DashboardBaseUrl = "https://rocktumbler.57446516.xyz/"
+$env:MesVisionCollector__PollIntervalSeconds = "60"
+```
+
+Manual collection is available after admin sign-in:
+
+```text
+POST /api/v1/integration/mes-vision/collect
+GET  /api/v1/integration/mes-vision/sources
+GET  /api/v1/integration/mes-vision/mappings
+PUT  /api/v1/integration/mes-vision/cameras/{id}/equipment
+PUT  /api/v1/integration/mes-vision/zones/{id}/equipment
+GET  /api/v1/integration/mes-vision/readings
+GET  /api/v1/integration/mes-vision/events
+```
+
+Keep this collector read-only. Do not store camera stream URLs, RTSP credentials, API keys, or dashboard control tokens in `SystemSettings` or the vision telemetry tables.
+The admin mapping screen at `/admin/vision` links collected cameras and zones to CoroMES equipment. Mapping updates are admin-protected, validate the target equipment id, and write audit records.
+
 ### Admin Settings Persistence
 
 The Blazor host persists allowlisted non-secret admin settings per user through `ApplicationDbContext.SystemSettings`.
@@ -347,7 +373,9 @@ dotnet publish src/CoroMES.Api -c Release -o ./publish
 - Forward host: `src/CoroMES.Web`
 - Backend API host: `src/CoroMES.Api`
 - Preservation branch/tag: `pre-blazor-2026-06-10`
-- Source backup zip: `C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\CoroMES-source-backup-2026-06-10.zip`
+- Current Blazor workspace: `C:\scripts\coroMES\CoroMES-blazor`
+- Preserved pre-Blazor workspace: `C:\scripts\coroMES\CoroMES`
+- Source backup zip: `C:\scripts\coroMES\CoroMES-source-backup-2026-06-10.zip`
 - Route parity reference: `docs/API.md`
 - Migration detail: `docs/BLAZOR_MIGRATION.md`
 

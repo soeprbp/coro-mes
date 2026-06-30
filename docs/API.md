@@ -159,6 +159,30 @@ Notes:
 - live asset reads have an adapter slot, but live sync and downtime writes remain blocked until the final UpKeep write API contract is confirmed
 - sync and downtime calls write audit records with success/failure status
 
+### MES-Vision Integration
+
+```text
+POST /api/v1/integration/mes-vision/collect
+GET  /api/v1/integration/mes-vision/sources
+GET  /api/v1/integration/mes-vision/mappings
+PUT  /api/v1/integration/mes-vision/cameras/{id}/equipment
+PUT  /api/v1/integration/mes-vision/zones/{id}/equipment
+GET  /api/v1/integration/mes-vision/readings?take=100
+GET  /api/v1/integration/mes-vision/events?take=100
+```
+
+Notes:
+
+- these endpoints are admin-protected in `CoroMES.Web`
+- collection calls the read-only `CoroMES.Integration.IIoT` MES-Vision collector
+- the first configured test endpoint is `https://rocktumbler.57446516.xyz/i3x/v1/`
+- `POST /collect` polls i3X `/info`, `/objects`, `/objects/value`, and `/objects/history` for event backfill
+- source, camera, zone, reading, and event data persist in `VisionSources`, `VisionCameras`, `VisionZones`, `VisionReadings`, and `VisionEvents`
+- `GET /mappings` returns active equipment options plus camera and zone mapping rows for the Blazor admin mapping screen
+- camera and zone mapping updates validate the target equipment id, allow clearing the mapping with `null`, and write `VisionCamera` or `VisionZone` audit records
+- background polling is disabled by default; enable it with `MesVisionCollector:Enabled=true`
+- the collector is read-only and does not call MES-Vision dashboard control endpoints
+
 ### Displays
 
 ```text
@@ -188,7 +212,7 @@ Old static URLs should remain compatible during migration:
 | `/displays/viewer.html` | `/displays/viewer` |
 | `/displays/builder.html` | `/displays/builder` |
 
-The pre-Blazor API/static web state is preserved at branch/tag `pre-blazor-2026-06-10` and in `C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\CoroMES-source-backup-2026-06-10.zip`.
+The pre-Blazor API/static web state is preserved at branch/tag `pre-blazor-2026-06-10` and in `C:\scripts\coroMES\CoroMES-source-backup-2026-06-10.zip`.
 
 ## Configuration-Driven Behavior
 
@@ -205,6 +229,24 @@ When `i3x.enabled` is true, repository registrations switch from EF Core-backed 
 
 This changes where data is read and written without changing the route surface.
 
+### MES-Vision collector
+
+`MesVisionCollector` config controls the read-only vision telemetry collector:
+
+```json
+{
+  "MesVisionCollector": {
+    "Enabled": false,
+    "I3XBaseUrl": "https://rocktumbler.57446516.xyz/i3x/v1/",
+    "DashboardBaseUrl": "https://rocktumbler.57446516.xyz/",
+    "PollIntervalSeconds": 60,
+    "HistoryLookbackMinutes": 60
+  }
+}
+```
+
+`Enabled=false` still allows manual admin-triggered collection through `POST /api/v1/integration/mes-vision/collect`.
+
 ## Not Implemented Yet
 
 The following surfaces were described in earlier docs but are not implemented in the current API host:
@@ -217,7 +259,7 @@ The following surfaces were described in earlier docs but are not implemented in
 - work order lifecycle actions such as start and complete
 - quality write endpoints
 - enterprise identity integration and rate limiting
-- audit coverage beyond current equipment, display, UpKeep, alarm, and settings mutations
+- audit coverage beyond current equipment, display, UpKeep, alarm, settings, and MES-Vision collection/mapping surfaces
 
 ## Response Style
 
@@ -234,7 +276,7 @@ Current automated coverage is strongest around:
 
 - CTI connector components
 - i3X client behaviors
-- Blazor auth, audit, display, UpKeep, alarm, and settings smoke coverage
+- Blazor auth, audit, display, UpKeep, alarm, settings, and MES-Vision mapping smoke coverage
 
 There is not yet broad end-to-end API integration coverage for the full route set.
 

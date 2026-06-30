@@ -17,6 +17,7 @@ CoroMES is structured like a Clean Architecture solution, but the implementation
 - `integration/CoroMES.Integration.Alerts` is an active guarded boundary for email, SMS, Pushover, and UpKeep alert notification paths
 - `integration/CoroMES.Integration.Cti` is an active ingestion framework for legacy CTI/EPS files
 - `integration/CoroMES.Integration.Upkeep` is an active mock/disabled/live boundary for UpKeep asset lookup, sync, and downtime adapter work
+- `integration/CoroMES.Integration.IIoT` now contains the read-only MES-Vision i3X collector foundation
 - `industrial/CoroMES.Industrial.i3X` is an active i3X client, model, and translation layer
 - old static URLs under `web/admin` and `web/displays` are migration compatibility paths that should redirect to Blazor routes or remain shimmed until replaced
 
@@ -95,6 +96,8 @@ The Blazor host also owns the first alarm workflow. `AlarmEvent` records capture
 
 `SystemSetting` records persist allowlisted non-secret admin settings and feature flags per user. The settings service rejects secret-looking values and reports credential status from `IConfiguration` without exposing the underlying values. Startup-affecting settings remain deployment concerns until a runtime application path is deliberately expanded.
 
+MES-Vision telemetry now has a persistence boundary for read-only i3X collection. `VisionSource`, `VisionCamera`, `VisionZone`, `VisionReading`, and `VisionEvent` records preserve discovered source inventory, camera/zone state, normalized metrics, event history, and compact raw JSON for traceability. The collector is hosted from `CoroMES.Web` but keeps protocol-specific polling and normalization in `CoroMES.Integration.IIoT`.
+
 ### Domain Layer
 
 - **`CoroMES.Core`**
@@ -163,7 +166,7 @@ The Blazor fork moves the primary UI direction to `src/CoroMES.Web`.
 - `web/admin/index.html`, `web/displays/viewer.html`, and `web/displays/builder.html` are pre-Blazor prototype paths.
 - Old static URLs should redirect to Blazor routes or remain available as compatibility shims until their replacement screens are complete.
 
-The pre-Blazor state is preserved at branch/tag `pre-blazor-2026-06-10` and in `C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\CoroMES-source-backup-2026-06-10.zip`.
+The pre-Blazor state is preserved at branch/tag `pre-blazor-2026-06-10` and in `C:\scripts\coroMES\CoroMES-source-backup-2026-06-10.zip`.
 
 ## Key Gaps Between Structure and Reality
 
@@ -188,7 +191,7 @@ The cleanest next steps are:
 2. turn `CoroMES.Application` into a real service/use-case layer
 3. make CTI ingestion runnable as an actual hosted connector workflow
 4. preserve API route parity while replacing static URLs with redirects
-5. align the i3X client to CESMII 1.0 before building MES-Vision collection
+5. build MES-Vision mapping UI and dashboard/reporting views from persisted vision telemetry
 6. either implement or trim the planned reporting and industrial surfaces
 
 ## Deployment Notes

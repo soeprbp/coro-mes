@@ -18,17 +18,19 @@ As of June 2026, the repository is beyond initial scaffolding but not yet a comp
 
 - `src/CoroMES.Web` is the forward Blazor host for user-facing workflows
 - `src/CoroMES.Api` remains the backend API host and route contract source of truth
-- the API supports foundational endpoints for work orders, equipment, materials, operators, quality, UpKeep integration, and display configs
+- the API supports foundational endpoints for work orders, equipment, materials, operators, quality, UpKeep integration, MES-Vision collection, and display configs
 - the Blazor host now maps API parity through focused endpoint modules instead of a large startup file
 - display builder definitions are persisted and loaded by the Blazor viewer
 - alarm events now persist in the Blazor host, with a guarded alerting boundary for email, SMS, Pushover, and UpKeep notification paths
+- MES-Vision collection now persists source/camera/zone inventory, normalized readings, and event history from the Rocktumbler i3X test endpoint
+- MES-Vision cameras and zones can be mapped to CoroMES equipment through `/admin/vision` and the protected mapping API
 - non-secret admin settings and feature flags persist per user through `SystemSettings`; credentials stay in environment/user-secret/deployment configuration
 - persistence currently defaults to SQLite for local development
 - PostgreSQL remains the intended production database path
 - i3X support exists behind configuration and can swap repository implementations
 - CTI integration has a safe ingestion framework but is not yet a full runnable connector host
 - the old `web/admin` and `web/displays` static URLs are migration compatibility paths and should redirect to Blazor routes as screens move
-- the pre-Blazor state is preserved at branch/tag `pre-blazor-2026-06-10` and in `C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\CoroMES-source-backup-2026-06-10.zip`
+- the pre-Blazor state is preserved at branch/tag `pre-blazor-2026-06-10` and in `C:\scripts\coroMES\CoroMES-source-backup-2026-06-10.zip`
 
 ## Solution Structure
 
@@ -53,7 +55,7 @@ integration/
 ├── CoroMES.Integration.Cti          # Active CTI/EPS ingestion framework
 ├── CoroMES.Integration.TrueCommerce # Planned EDI integration boundary
 ├── CoroMES.Integration.Upkeep       # Active CMMS integration boundary
-└── CoroMES.Integration.IIoT         # Planned IIoT integration boundary
+└── CoroMES.Integration.IIoT         # Active MES-Vision collector boundary
 
 industrial/
 ├── CoroMES.Industrial.i3X       # Active i3X client, models, translators
@@ -102,7 +104,7 @@ By default, the app uses the SQLite connection string in `src/CoroMES.Api/appset
 dotnet test CoroMES.sln
 ```
 
-Unit tests currently cover the CTI ingestion framework and i3X client behavior. Integration tests cover the Blazor host auth gate, equipment audit writes, persisted display definitions, UpKeep sync audit logging, the alarm lifecycle, and non-secret settings persistence.
+Unit tests currently cover the CTI ingestion framework, i3X client behavior, and MES-Vision telemetry normalization. Integration tests cover the Blazor host auth gate, equipment audit writes, persisted display definitions, UpKeep sync audit logging, the alarm lifecycle, non-secret settings persistence, and MES-Vision camera/zone equipment mapping.
 
 ## Documentation
 

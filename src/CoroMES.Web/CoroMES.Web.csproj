@@ -6,6 +6,7 @@
     <ProjectReference Include="..\CoroMES.Reporting\CoroMES.Reporting.csproj" />
     <ProjectReference Include="..\..\industrial\CoroMES.Industrial.i3X\CoroMES.Industrial.i3X.csproj" />
     <ProjectReference Include="..\..\integration\CoroMES.Integration.Alerts\CoroMES.Integration.Alerts.csproj" />
+    <ProjectReference Include="..\..\integration\CoroMES.Integration.IIoT\CoroMES.Integration.IIoT.csproj" />
     <ProjectReference Include="..\..\integration\CoroMES.Integration.Upkeep\CoroMES.Integration.Upkeep.csproj" />
   </ItemGroup>
 

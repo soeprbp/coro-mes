@@ -1,6 +1,7 @@
 @page "/admin"
 @page "/admin/equipment"
 @page "/admin/upkeep"
+@page "/admin/vision"
 @page "/admin/alarms"
 @page "/admin/protocols"
 @page "/admin/settings"
@@ -12,6 +13,7 @@
 @inject IAlertDispatcher AlertDispatcher
 @inject ISystemSettingsService SystemSettings
 @inject IAuditLogService AuditLog
+@inject ApplicationDbContext Db
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
 
@@ -22,6 +24,7 @@
             <a class="@NavClass("dashboard")" href="/admin">Dashboard</a>
             <a class="@NavClass("equipment")" href="/admin/equipment">Equipment</a>
             <a class="@NavClass("upkeep")" href="/admin/upkeep">Upkeep Sync</a>
+            <a class="@NavClass("vision")" href="/admin/vision">MES-Vision</a>
             <a class="@NavClass("alarms")" href="/admin/alarms">Alarms</a>
             <a class="@NavClass("protocols")" href="/admin/protocols">Protocols</a>
             <a class="@NavClass("settings")" href="/admin/settings">Settings</a>
@@ -223,6 +226,105 @@
                 <p class="notice">@syncStatus</p>
             </section>
         }
+        else if (section == "vision")
+        {
+            <header class="page-header">
+                <div><p class="eyebrow">Integration</p><h1>MES-Vision Mapping</h1></div>
+                <button class="button primary" @onclick="LoadVisionMappings">Refresh</button>
+            </header>
+
+            <section class="metric-grid">
+                <article class="metric"><span>Cameras</span><strong>@visionCameras.Count</strong></article>
+                <article class="metric"><span>Mapped Cameras</span><strong>@visionCameras.Count(item => item.EquipmentId.HasValue)</strong></article>
+                <article class="metric"><span>Zones</span><strong>@visionZones.Count</strong></article>
+                <article class="metric"><span>Mapped Zones</span><strong>@visionZones.Count(item => item.EquipmentId.HasValue)</strong></article>
+            </section>
+
+            <section class="split-layout wide-form">
+                <div class="panel">
+                    <div class="panel-title"><h2>Camera Assets</h2></div>
+                    <div class="mapping-list">
+                        @if (visionCameras.Count == 0)
+                        {
+                            <p class="muted">No MES-Vision cameras have been collected yet. Run a manual collect after the test endpoint is available.</p>
+                        }
+                        else
+                        {
+                            @foreach (var camera in visionCameras)
+                            {
+                                <article class="mapping-card">
+                                    <div>
+                                        <span class="pill @(camera.IsActive ? "good" : "neutral")">@(camera.IsActive ? "Active" : "Inactive")</span>
+                                        <span class="pill neutral">@camera.VisionSource?.DisplayName</span>
+                                    </div>
+                                    <h3>@camera.DisplayName</h3>
+                                    <p>@(camera.Source ?? camera.ElementId)</p>
+                                    <small>Slot @(camera.SlotId ?? "n/a") - Status @(camera.LastStatus ?? "unknown") - Zones @camera.Zones.Count</small>
+                                    <label>
+                                        Equipment
+                                        <select @bind="camera.EquipmentId">
+                                            <option value="">Unmapped</option>
+                                            @foreach (var item in equipment)
+                                            {
+                                                <option value="@item.Id">@item.Code - @item.Name</option>
+                                            }
+                                        </select>
+                                    </label>
+                                    <div class="row-actions">
+                                        <button class="button small" @onclick="() => SaveVisionCameraMapping(camera)">Save Mapping</button>
+                                        <button class="button small" @onclick="() => ClearVisionCameraMapping(camera)">Clear</button>
+                                    </div>
+                                </article>
+                            }
+                        }
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title"><h2>Zone Assets</h2></div>
+                    <div class="mapping-list">
+                        @if (visionZones.Count == 0)
+                        {
+                            <p class="muted">No MES-Vision zones have been collected yet.</p>
+                        }
+                        else
+                        {
+                            @foreach (var zone in visionZones)
+                            {
+                                <article class="mapping-card">
+                                    <div>
+                                        <span class="pill @(zone.Enabled ? "good" : "neutral")">@(zone.Enabled ? "Enabled" : "Disabled")</span>
+                                        <span class="pill neutral">@zone.VisionSource?.DisplayName</span>
+                                    </div>
+                                    <h3>@zone.Name</h3>
+                                    <p>@(zone.VisionCamera?.DisplayName ?? "Source-level zone")</p>
+                                    <small>@zone.ElementId - Status @(zone.LastStatus ?? "unknown") - Motion @(zone.LastMotionPercent?.ToString("0.0") ?? "n/a")%</small>
+                                    <label>
+                                        Equipment
+                                        <select @bind="zone.EquipmentId">
+                                            <option value="">Unmapped</option>
+                                            @foreach (var item in equipment)
+                                            {
+                                                <option value="@item.Id">@item.Code - @item.Name</option>
+                                            }
+                                        </select>
+                                    </label>
+                                    <div class="row-actions">
+                                        <button class="button small" @onclick="() => SaveVisionZoneMapping(zone)">Save Mapping</button>
+                                        <button class="button small" @onclick="() => ClearVisionZoneMapping(zone)">Clear</button>
+                                    </div>
+                                </article>
+                            }
+                        }
+                    </div>
+                </div>
+            </section>
+
+            @if (!string.IsNullOrWhiteSpace(visionMessage))
+            {
+                <p class="notice">@visionMessage</p>
+            }
+        }
         else if (section == "alarms")
         {
             <header class="page-header">
@@ -421,6 +523,8 @@
     private List<Equipment> equipment = [];
     private List<UpkeepAsset> upkeepAssets = [];
     private List<AlarmEvent> alarms = [];
+    private List<VisionCamera> visionCameras = [];
+    private List<VisionZone> visionZones = [];
     private Equipment form = new();
     private AlarmDraft alarmDraft = new();
     private int? editingId;
@@ -430,6 +534,7 @@
     private string? protocolMessage;
     private string? settingsMessage;
     private string? alarmMessage;
+    private string? visionMessage;
     private string upkeepSearch = string.Empty;
     private UpkeepAsset? selectedUpkeepAsset => GetUpkeepAsset(form.UpkeepAssetId);
     private readonly List<AlertChannelDraft> alarmChannels =
@@ -486,6 +591,7 @@
         upkeepAssets = (await UpkeepIntegration.GetAssetsAsync()).ToList();
         await LoadSettings();
         await LoadEquipment();
+        await LoadVisionMappings();
         await LoadAlarms();
     }
 
@@ -501,6 +607,7 @@
         {
             "admin/equipment" => "equipment",
             "admin/upkeep" => "upkeep",
+            "admin/vision" => "vision",
             "admin/alarms" => "alarms",
             "admin/protocols" => "protocols",
             "admin/settings" => "settings",
@@ -703,6 +810,117 @@
         syncStatus = $"Last sync: {result.TimestampUtc.ToLocalTime():g}. Mode: {result.Mode}. Linked assets: {result.Synced}. {result.Message}";
     }
 
+    private async Task LoadVisionMappings()
+    {
+        visionCameras = await Db.VisionCameras
+            .AsNoTracking()
+            .Include(item => item.VisionSource)
+            .Include(item => item.Zones)
+            .OrderBy(item => item.VisionSource!.DisplayName)
+            .ThenBy(item => item.DisplayName)
+            .ToListAsync();
+
+        visionZones = await Db.VisionZones
+            .AsNoTracking()
+            .Include(item => item.VisionSource)
+            .Include(item => item.VisionCamera)
+            .OrderBy(item => item.VisionSource!.DisplayName)
+            .ThenBy(item => item.VisionCamera == null ? string.Empty : item.VisionCamera.DisplayName)
+            .ThenBy(item => item.Name)
+            .ToListAsync();
+    }
+
+    private async Task SaveVisionCameraMapping(VisionCamera camera)
+    {
+        if (!await EquipmentExists(camera.EquipmentId))
+        {
+            visionMessage = $"Equipment id {camera.EquipmentId} was not found.";
+            return;
+        }
+
+        var existing = await Db.VisionCameras
+            .Include(item => item.VisionSource)
+            .Include(item => item.Equipment)
+            .FirstOrDefaultAsync(item => item.Id == camera.Id);
+
+        if (existing is null)
+        {
+            visionMessage = "Camera mapping could not be saved because the camera no longer exists.";
+            return;
+        }
+
+        var before = DescribeVisionEquipment(existing.EquipmentId, existing.Equipment?.Code);
+        existing.EquipmentId = camera.EquipmentId;
+        existing.UpdatedAt = DateTime.UtcNow;
+        await Db.SaveChangesAsync();
+
+        await AuditLog.RecordAsync(null, new AuditLogEntry(
+            "MapEquipment",
+            nameof(VisionCamera),
+            existing.Id,
+            $"Camera={existing.DisplayName}; Source={existing.VisionSource?.DisplayName ?? existing.VisionSourceId.ToString()}; {before} -> {DescribeVisionEquipment(existing.EquipmentId, null)}",
+            Actor: await GetCurrentActorAsync(),
+            Route: "/admin/vision"));
+
+        visionMessage = $"{existing.DisplayName} mapping saved.";
+        await LoadVisionMappings();
+    }
+
+    private async Task ClearVisionCameraMapping(VisionCamera camera)
+    {
+        camera.EquipmentId = null;
+        await SaveVisionCameraMapping(camera);
+    }
+
+    private async Task SaveVisionZoneMapping(VisionZone zone)
+    {
+        if (!await EquipmentExists(zone.EquipmentId))
+        {
+            visionMessage = $"Equipment id {zone.EquipmentId} was not found.";
+            return;
+        }
+
+        var existing = await Db.VisionZones
+            .Include(item => item.VisionSource)
+            .Include(item => item.VisionCamera)
+            .Include(item => item.Equipment)
+            .FirstOrDefaultAsync(item => item.Id == zone.Id);
+
+        if (existing is null)
+        {
+            visionMessage = "Zone mapping could not be saved because the zone no longer exists.";
+            return;
+        }
+
+        var before = DescribeVisionEquipment(existing.EquipmentId, existing.Equipment?.Code);
+        existing.EquipmentId = zone.EquipmentId;
+        existing.UpdatedAt = DateTime.UtcNow;
+        await Db.SaveChangesAsync();
+
+        await AuditLog.RecordAsync(null, new AuditLogEntry(
+            "MapEquipment",
+            nameof(VisionZone),
+            existing.Id,
+            $"Zone={existing.Name}; Camera={existing.VisionCamera?.DisplayName ?? "none"}; Source={existing.VisionSource?.DisplayName ?? existing.VisionSourceId.ToString()}; {before} -> {DescribeVisionEquipment(existing.EquipmentId, null)}",
+            Actor: await GetCurrentActorAsync(),
+            Route: "/admin/vision"));
+
+        visionMessage = $"{existing.Name} mapping saved.";
+        await LoadVisionMappings();
+    }
+
+    private async Task ClearVisionZoneMapping(VisionZone zone)
+    {
+        zone.EquipmentId = null;
+        await SaveVisionZoneMapping(zone);
+    }
+
+    private async Task<bool> EquipmentExists(int? equipmentId)
+    {
+        return !equipmentId.HasValue ||
+            await Db.Equipment.AnyAsync(item => item.Id == equipmentId.Value);
+    }
+
     private async Task RaiseAlarm()
     {
         if (string.IsNullOrWhiteSpace(alarmDraft.Title) || string.IsNullOrWhiteSpace(alarmDraft.Message))
@@ -842,6 +1060,13 @@
         }
 
         return $"Code={item.Code}; Name={item.Name}; Status={item.Status}; Location={item.Location ?? "n/a"}; UpKeepAssetId={item.UpkeepAssetId?.ToString() ?? "none"}";
+    }
+
+    private static string DescribeVisionEquipment(int? equipmentId, string? equipmentCode)
+    {
+        return equipmentId.HasValue
+            ? $"EquipmentId={equipmentId.Value}{(string.IsNullOrWhiteSpace(equipmentCode) ? string.Empty : $"; EquipmentCode={equipmentCode}")}"
+            : "EquipmentId=none";
     }
 
     private static string AlarmSeverityClass(AlarmSeverity severity) => severity switch

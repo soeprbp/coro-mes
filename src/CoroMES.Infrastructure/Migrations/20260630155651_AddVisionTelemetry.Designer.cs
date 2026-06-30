@@ -3,6 +3,7 @@ using System;
 using CoroMES.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CoroMES.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260630155651_AddVisionTelemetry")]
+    partial class AddVisionTelemetry
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1269,9 +1272,6 @@ namespace CoroMES.Infrastructure.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("boolean");
 
-                    b.Property<int?>("EquipmentId")
-                        .HasColumnType("integer");
-
                     b.Property<double?>("LastMotionPercent")
                         .HasColumnType("double precision");
 
@@ -1300,8 +1300,6 @@ namespace CoroMES.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("EquipmentId");
 
                     b.HasIndex("VisionCameraId");
 
@@ -1707,11 +1705,6 @@ namespace CoroMES.Infrastructure.Migrations
 
             modelBuilder.Entity("CoroMES.Core.Entities.VisionZone", b =>
                 {
-                    b.HasOne("CoroMES.Core.Entities.Equipment", "Equipment")
-                        .WithMany()
-                        .HasForeignKey("EquipmentId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("CoroMES.Core.Entities.VisionCamera", "VisionCamera")
                         .WithMany("Zones")
                         .HasForeignKey("VisionCameraId")
@@ -1722,8 +1715,6 @@ namespace CoroMES.Infrastructure.Migrations
                         .HasForeignKey("VisionSourceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Equipment");
 
                     b.Navigation("VisionCamera");
 

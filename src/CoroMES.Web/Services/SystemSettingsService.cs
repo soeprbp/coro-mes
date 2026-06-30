@@ -18,8 +18,8 @@ public sealed class SystemSettingsService(ApplicationDbContext db, IConfiguratio
 
     private static readonly IntegrationEndpointSettingDto[] DefaultIntegrationEndpoints =
     [
-        new("MES-Vision i3X", "Integration.MesVisionI3X.BaseUrl", "Integration.MesVisionI3X.Mode", "http://localhost:5002/v1/", "read-only", "http://localhost:5002/v1/"),
-        new("MES-Vision Dashboard", "Integration.MesVisionDashboard.BaseUrl", "Integration.MesVisionDashboard.Mode", "http://localhost:5000/", "disabled", "http://localhost:5000/"),
+        new("MES-Vision i3X", "Integration.MesVisionI3X.BaseUrl", "Integration.MesVisionI3X.Mode", "https://rocktumbler.57446516.xyz/i3x/v1/", "read-only", "https://rocktumbler.57446516.xyz/i3x/v1/"),
+        new("MES-Vision Dashboard", "Integration.MesVisionDashboard.BaseUrl", "Integration.MesVisionDashboard.Mode", "https://rocktumbler.57446516.xyz/", "disabled", "https://rocktumbler.57446516.xyz/"),
         new("UpKeep", "Integration.Upkeep.BaseUrl", "Integration.Upkeep.Mode", "", "mock", "https://api.onupkeep.com/")
     ];
 
