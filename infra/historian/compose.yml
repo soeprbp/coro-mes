@@ -1,0 +1,39 @@
+# Separate durable historian. No published database port or production connection.
+# Attach approved future collector/API services to coromes_historian explicitly.
+services:
+  postgres:
+    image: postgres:17-bookworm@sha256:639ab7ceb90e13123085b741fb31ef493fba25463002f6da665352e7b534b652
+    restart: unless-stopped
+    mem_limit: 768m
+    cpus: 1.0
+    shm_size: 128m
+    environment:
+      POSTGRES_DB: coromes_history
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_admin
+      POSTGRES_INITDB_ARGS: --data-checksums
+    command: [postgres, -c, shared_buffers=128MB, -c, max_connections=30, -c, log_min_duration_statement=1000]
+    secrets:
+      - postgres_admin
+    volumes:
+      - historian_data:/var/lib/postgresql/data
+    networks:
+      - historian
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U postgres -d coromes_history']
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+secrets:
+  postgres_admin:
+    file: ${HISTORIAN_ADMIN_SECRET:?Set private admin password file path}
+volumes:
+  historian_data:
+networks:
+  historian:
+    name: coromes_historian
+    internal: true
