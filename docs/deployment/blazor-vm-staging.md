@@ -62,6 +62,16 @@ during isolated staging.
 
 ## Checks and recovery
 
+### MES dashboard
+
+To serve an existing reviewed MES dashboard, set `COROMES_MES_DIST` to its
+absolute built `dist` directory and add `-f infra/docker/blazor-mes.compose.yml`
+after the base and optional LAN files. Deploy the HTML and its bound JSON sidecar
+together. `/mes/` is the interactive view; `/mes/?tv=1` is the display view.
+These read-only pages are available without the admin login. They retain their
+source provenance and do not enable collection or turn a snapshot into live data.
+The optional mount uses existing private deployment data, never repository data.
+
 Check `/health` for HTTP 200, `/admin` for a login redirect, and a protected
 `/api/v1/equipment` request for HTTP 401 before signing in. Then verify an
 admin read in the browser with the configured access code. Container health

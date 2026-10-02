@@ -1,0 +1,6 @@
+# Serve the separately authored MES dashboard and its bound snapshot together.
+# The directory is private deployment data and must never be added to public Git.
+services:
+  gateway:
+    volumes:
+      - "${COROMES_MES_DIST:?Set the reviewed MES dist directory}:/srv/mes:ro"
