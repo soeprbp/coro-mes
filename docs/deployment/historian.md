@@ -71,6 +71,23 @@ a backup. Recreate application logins from protected secrets on a new host.
 
 ## Operational checks
 
+### Windows VM-host copy
+
+`stage-host-backup.py` creates a fresh guest backup and stages only its dump in
+the SSH user's private home directory. `Copy-HistorianBackup.ps1` pulls it with
+a pinned SSH host key, verifies SHA256 and size, and publishes it atomically on
+the Windows host. Supply the VM hostname, SSH user, private key, known-hosts file,
+and destination as parameters. Credentials are not included in the dump.
+
+Run the host script daily with Task Scheduler, start-when-available, bounded
+retries, and no overlapping instances. Use a key whose ownership and ACLs satisfy
+OpenSSH for the task account; preserve the interactive user's original key.
+Restrict the backup folder to administrators and the task account. Inspect
+`last-success.json`, `last-failure.json`, and the task exit code; an old failure
+file is historical when a newer success exists. No automatic retention deletion
+is configured on either machine. A host-local backup survives guest loss but
+does not protect against loss of the entire physical host.
+
 Check container health, disk space, the last successful backup, and collection
 status. Run `verify.sql` only in a maintenance/test context: it exercises fake
 records and rolls its test transaction back. A healthy empty historian does not
