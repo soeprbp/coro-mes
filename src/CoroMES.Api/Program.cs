@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using CoroMES.Infrastructure.Data;
 using CoroMES.Core.Entities;
 
@@ -15,8 +16,14 @@ if (dbProvider == "postgres")
 }
 else
 {
-    // Use SQLite for development - use absolute path
-    var dbPath = @"C:\Users\soperbp\OneDrive - Welch Packaging Group\Scripts\workdev\CoroMES\database\coromes.db";
+    // Keep the database alongside the checkout by default. Containers override this
+    // path with CoroMES__SqlitePath so the file survives image replacement.
+    var dbPath = builder.Configuration.GetValue<string>("CoroMES:SqlitePath")
+        ?? Path.Combine(builder.Environment.ContentRootPath, "database", "coromes.db");
+    if (!Path.IsPathRooted(dbPath))
+    {
+        dbPath = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, dbPath));
+    }
     Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseSqlite($"Data Source={dbPath}"));
@@ -28,7 +35,6 @@ if (Directory.GetCurrentDirectory() == "/" || !Directory.Exists(webRoot)) {
     webRoot = "/app/web";
 }
 Directory.CreateDirectory(webRoot);
-builder.Environment.WebRootPath = webRoot;
 
 var app = builder.Build();
 
@@ -39,8 +45,12 @@ using (var scope = app.Services.CreateScope())
     await db.Database.EnsureCreatedAsync();
 }
 
-// Enable static files
-app.UseStaticFiles();
+// Serve the bundled web prototypes from a resolved path in both local and
+// container runs. The default web-root provider is fixed during host creation.
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(webRoot)
+});
 
 // Health check
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }))

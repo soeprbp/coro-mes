@@ -8,6 +8,7 @@ This index lists documents that currently exist. Documentation describes either 
 - [Architecture](./ARCHITECTURE.md) — current implementation versus target architecture.
 - [Architecture — As Implemented (Findings)](./ARCHITECTURE_CURRENT.md) — repository-grounded review of what actually exists today.
 - [Development Guide](./DEVELOPMENT.md) — actual local configuration, run, and verification guidance.
+- [Portable Deployment](./PORTABLE_DEPLOYMENT.md) — deployed prototype, branch distinction, Compose, SQLite backup, and recovery.
 - [API](./API.md) — routes implemented by the current prototype API.
 
 ## Integrations and industrial connectivity

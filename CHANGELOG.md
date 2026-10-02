@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Portable prototype deployment — 2026-10-02
+- Added Debian/Docker deployment with persistent SQLite and loopback access.
+- Removed the machine-specific SQLite path and fixed pages to use their serving origin.
+- Added a restricted container build context and non-root runtime.
+- Updated EF Core dependencies and removed unused Swagger packages; API build and dependency checks passed.
+- Documented backup/recovery and the distinction from the newer Blazor branch.
+
 ### Added
 - Initial solution structure with 19 projects
 - Clean Architecture pattern

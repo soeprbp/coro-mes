@@ -1,5 +1,7 @@
 # Development Guide
 
+The deployed prototype uses `deploy/portable/compose.yaml` and SQLite. See [Portable Deployment](PORTABLE_DEPLOYMENT.md) for working commands. The newer application lives on `codex/blazor-forward`; inspect it before extending this branch. The older infrastructure and Swagger steps below are historical design notes, not the supported deployment path. This prototype does not expose Swagger.
+
 ## Prerequisites
 
 - .NET 10 SDK

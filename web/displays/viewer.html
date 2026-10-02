@@ -196,7 +196,7 @@
         // Get display ID from URL
         const urlParams = new URLSearchParams(window.location.search);
         const displayId = urlParams.get('id') || 'default';
-        const apiBaseUrl = urlParams.get('api') || 'http://localhost:5000';
+        const apiBaseUrl = urlParams.get('api') || window.location.origin;
         
         let displayConfig = null;
         let updateInterval = null;

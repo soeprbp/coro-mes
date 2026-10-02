@@ -7,11 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\CoroMES.Application\CoroMES.Application.csproj" />
     <ProjectReference Include="..\CoroMES.Infrastructure\CoroMES.Infrastructure.csproj" />
     <ProjectReference Include="..\CoroMES.Reporting\CoroMES.Reporting.csproj" />

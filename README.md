@@ -1,77 +1,31 @@
-# CoroMES - Manufacturing Execution System
+# CoroMES
 
-## Overview
+CoroMES is a .NET manufacturing execution system under development.
 
-CoroMES is a homebrew Manufacturing Execution System (MES) designed for manufacturing operations management. It provides real-time visibility and control over production processes, integrates with EDI systems, CMMS platforms, and industrial protocols.
+## Branches and deployed version
 
-## Architecture
+- `codex/blazor-forward` contains the newer Blazor application, persisted displays, and integration work. Check it before planning product features.
+- This master-based deployment packages the older Minimal API and static web prototype in a portable Debian/Docker host. It does not include the newer Blazor branch.
 
-CoroMES uses **Clean Architecture** with a modular structure:
+The prototype uses SQLite in a persistent Docker volume. Its interface has placeholder authentication and demo display behavior, so the API is restricted to loopback with SSH access. A separate CTI board shows a labeled historical snapshot; live collection remains pending.
 
-```
-src/
-├── CoroMES.Api           # REST API (Minimal API)
-├── CoroMES.Core          # Domain entities, interfaces
-├── CoroMES.Application   # Use cases, DTOs, services
-├── CoroMES.Infrastructure# Database, external services
-└── CoroMES.Reporting     # Reporting API for BI tools
+## Run the portable prototype
 
-modules/                  # MES functional domains
-├── Production
-├── Quality
-├── Inventory
-├── Equipment
-└── Workforce
+With Docker Engine and Compose installed:
 
-integration/              # External integrations
-├── TrueCommerce         # EDI (X12)
-├── Upkeep               # CMMS
-└── IIoT                 # Industrial IoT
-
-industrial/               # Protocol handlers
-├── Mqtt
-├── OpcUa
-└── EthernetIp
+```bash
+docker compose -f deploy/portable/compose.yaml up -d --build
+curl --fail http://127.0.0.1:5100/health
 ```
 
-## Quick Start
-
-### Prerequisites
-- .NET 10 SDK
-- Docker Desktop
-- PostgreSQL (or Docker)
-
-### Run Development
-
-```powershell
-# Start PostgreSQL
-docker compose -f infra/docker/docker-compose.yml up -d
-
-# Build solution
-dotnet build
-
-# Run API
-dotnet run --project src/CoroMES.Api
-```
-
-### Swagger UI
-Visit: http://localhost:5000/swagger
-
-## Configuration
-
-See `config/settings.yaml` for all configuration options.
+Open `http://127.0.0.1:5100/admin/index.html` on the host or forward that port over SSH. Do not expose the prototype's write API directly to the network. The older root compose file is a development sketch, not the current deployment entry point.
 
 ## Documentation
 
-- [Architecture](./ARCHITECTURE.md)
-- [API Documentation](./API.md)
-- [Reporting API](./REPORTING_API.md)
-- [Integrations](./INTEGRATIONS.md)
-- [Industrial Protocols](./INDUSTRIAL_PROTOCOLS.md)
-- [Development Guide](./DEVELOPMENT.md)
+- [Portable deployment, backup, and recovery](docs/PORTABLE_DEPLOYMENT.md)
+- [Documentation index](docs/INDEX.md)
+- [API](docs/API.md)
+- [Project state](memory/PROJECT_STATE.md)
+- [Next tasks](memory/CURRENT_TASKS.md)
 
-## Version
-
-Current: **0.1.0-alpha**
-
-See [CHANGELOG](./CHANGELOG.md) for version history.
+Private deployment addresses and credentials belong outside Git. The local operations pointer is `docs/DEPLOYMENT.local.md`, which is ignored.

@@ -30,6 +30,7 @@ publish/
 *~
 
 # Secrets (never commit)
+docs/*.local.md
 *.pfx
 *.key
 *.p12
@@ -64,6 +65,11 @@ coverage/
 tmp/
 temp/
 *.tmp
+
+# Local installers and CAD workspaces, preserved on disk.
+/ODAViewer-redownload/
+/ODAViewer_QT6_vc16_amd64dll_27.1/
+/*.dwg
 
 # EDI files (may contain sensitive data)
 data/edi/inbound/*

@@ -211,7 +211,7 @@
                             <h5>API Configuration</h5>
                             <div class="mt-3">
                                 <label class="form-label">API Base URL</label>
-                                <input type="text" class="form-control" id="apiBaseUrl" value="http://localhost:5000">
+                                <input type="text" class="form-control" id="apiBaseUrl" value="">
                             </div>
                             <button class="btn btn-primary mt-3" onclick="saveSettings()">Save Settings</button>
                         </div>
@@ -314,7 +314,7 @@
         // State
         let equipment = [];
         let upkeepAssets = [];
-        let apiBaseUrl = localStorage.getItem('apiBaseUrl') || 'http://localhost:5000';
+        let apiBaseUrl = localStorage.getItem('apiBaseUrl') || window.location.origin;
 
         // Check if logged in
         if (localStorage.getItem('coromesAdmin') === 'true') {

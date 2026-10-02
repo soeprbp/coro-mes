@@ -1,0 +1,25 @@
+# CoroMES's implemented API and static web. Its external integration projects
+# compile into the image but have no active runtime connector in Program.cs.
+name: coromes
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: src/CoroMES.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      DatabaseProvider: sqlite
+      CoroMES__SqlitePath: /app/data/coromes.db
+    ports:
+      - "127.0.0.1:${COROMES_PORT:-5100}:5000"
+    volumes:
+      - coromes_data:/app/data
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  coromes_data:
