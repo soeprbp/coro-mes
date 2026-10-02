@@ -12,9 +12,23 @@ using CoroMES.Web.Services;
 using CoroMES.Web.Startup;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Container deployments can mount a single admin secret as a file named
+// Auth__AdminAccessCode; this avoids putting credentials in Compose or Git.
+builder.Configuration.AddKeyPerFile("/run/secrets", optional: true);
+
+// Cookie authentication must survive container recreation and host reboots.
+// Keep its key ring alongside the persistent SQLite database.
+var keyPath = builder.Configuration["DataProtection:KeyPath"]
+    ?? Path.Combine(builder.Environment.ContentRootPath, "database", "keys");
+Directory.CreateDirectory(keyPath);
+builder.Services.AddDataProtection()
+    .SetApplicationName("CoroMES.Web")
+    .PersistKeysToFileSystem(new DirectoryInfo(keyPath));
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
