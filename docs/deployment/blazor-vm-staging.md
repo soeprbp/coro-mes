@@ -31,6 +31,18 @@ access-code login is in use.
 
 ## Storage and isolation
 
+### Optional direct internal-network address
+
+For an explicitly approved LAN deployment, set `COROMES_LAN_ADDRESS` to the
+guest's LAN IP in the private deployment environment file, then include
+`-f infra/docker/blazor-lan.compose.yml` after the base Compose file on every
+`up` command. This adds port 80 on that interface and preserves loopback 5101.
+Users can open `http://<guest-hostname>/admin` without an SSH tunnel. The existing
+admin login still applies. HTTP does not encrypt access codes or session cookies;
+use trusted HTTPS before access outside the trusted internal network. This
+override does not expose Portainer or enable external application integrations.
+To return to loopback-only access, recreate the gateway using only the base file.
+
 The `coromes-blazor_coromes_blazor_data` Docker volume holds both
 `/app/data/coromes.db` and `/app/data/keys` (the ASP.NET Data Protection key
 ring). Back up both together. The app runs as the .NET image's unprivileged
