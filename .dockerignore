@@ -1,0 +1,26 @@
+# Explicit build-context allowlist: exclude local databases, CAD tools, EDI
+# files, credentials, and unrelated untracked material.
+*
+!src/
+!src/**
+!modules/
+!modules/**
+!integration/
+!integration/**
+!industrial/
+!industrial/**
+!web/
+!web/**
+**/bin/
+**/obj/
+**/.env
+**/.env.*
+**/appsettings.Development.json
+**/appsettings.*.json
+!src/CoroMES.Api/appsettings.json
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+**/*.pfx
+**/*.pem
+**/*.key

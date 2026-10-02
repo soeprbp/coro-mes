@@ -1,43 +1,21 @@
-# Current Tasks
+# Current tasks
 
-**Last Updated:** 2026-04-16
+Updated October 2, 2026.
 
-## Active Work
+## Completed for the master prototype
 
-### Phase 1: Foundation Setup (In Progress)
+- Portable .NET container with SQLite persistence and loopback access.
+- Debian Hyper-V hosting, Docker, and Portainer.
+- Source database backup and integrity verification.
+- Dependency update, clean API build, and HTTP checks.
+- VM reboot and SSH tunnel recovery verification.
 
-- [ ] Add project references
-  - [ ] Modules → Core
-  - [ ] Application → Core
-  - [ ] Infrastructure → Core
-  - [ ] Api → Application, Infrastructure
-  - [ ] Reporting → Core, Infrastructure
-  - [ ] Integrations → Core
+## Next work
 
-- [ ] Add NuGet packages
-  - [ ] EF Core + PostgreSQL
-  - [ ] MQTTnet
-  - [ ] OPC-UA SDK
-  - [ ] Ethernet/IP library
+1. Compare `codex/blazor-forward` with the deployed prototype and prepare a safe migration of the newer application. Preserve its data and check connector defaults before starting it.
+2. Prepare a bounded full-cycle CTI read-cost assessment. Prior production approval covered only a completed 20-row pilot, not scheduled reads.
+3. Build the five-minute feed through a durable cache with explicit source time, coverage, and stale-data behavior.
+4. Configure automatic off-host backups and test a restore.
+5. Verify the intended MES board in the physical display rotation when its application and data are ready.
 
-- [ ] Configure Docker Compose
-  - [ ] PostgreSQL container
-  - [ ] Mosquitto MQTT broker
-
-- [ ] Create Core domain entities
-  - [ ] WorkOrder
-  - [ ] Equipment
-  - [ ] Material
-  - [ ] Operator
-
-- [ ] Create API endpoints
-
-## Blockers
-
-None yet.
-
-## Next Actions
-
-1. Add project references to establish Clean Architecture
-2. Add required NuGet packages
-3. Set up Docker Compose
+Review the newer branch before rebuilding missing prototype features. Keep the current unauthenticated API on loopback. Private deployment details remain outside Git.

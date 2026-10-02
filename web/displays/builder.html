@@ -182,7 +182,7 @@
         let devices = [];
         let editingId = null;
         let selectedDevices = [];
-        const apiBaseUrl = localStorage.getItem('apiBaseUrl') || 'http://localhost:5000';
+        const apiBaseUrl = localStorage.getItem('apiBaseUrl') || window.location.origin;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
