@@ -14,6 +14,20 @@ The long-term goal is to replace legacy CTI/EPS MES and SCADA workflows with a m
 
 ## Current State
 
+The October 2026 portable Linux deployment builds `src/CoroMES.Web` using
+`infra/docker/blazor-staging.compose.yml`. It runs the Blazor UI and its API
+together, with persistent SQLite and authentication keys, a private admin-code
+file, and a loopback WebSocket gateway. External integrations are disabled and
+the application has no outbound network route in this profile. See
+[Blazor VM deployment](docs/deployment/blazor-vm-staging.md) for setup and recovery.
+Example display layouts are not live manufacturing measurements.
+
+The separate [PostgreSQL historian](docs/deployment/historian.md) stores current
+source records, collection outcomes, and append-only revisions through an atomic
+ingestion function. Its Compose profile, schema, rollback-only verification, and
+backup timer are under `infra/historian`. Production collection is not enabled by
+deploying this database; the existing app database remains separate.
+
 As of June 2026, the repository is beyond initial scaffolding but not yet a complete product surface.
 
 - `src/CoroMES.Web` is the forward Blazor host for user-facing workflows

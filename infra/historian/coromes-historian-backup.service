@@ -1,0 +1,9 @@
+[Unit]
+Description=Back up the local CoroMES PostgreSQL historian
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /opt/coromes-historian/backup.sh
+UMask=0077

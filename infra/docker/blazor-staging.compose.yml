@@ -1,0 +1,62 @@
+# The application stays on an internal-only network. A fixed reverse proxy
+# publishes loopback access because internal-only containers have no host mapping.
+services:
+  coromes-blazor:
+    build:
+      context: ../..
+      dockerfile: src/CoroMES.Web/Dockerfile
+    image: coromes-blazor:staging
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      DatabaseProvider: sqlite
+      ConnectionStrings__DefaultConnection: "Data Source=/app/data/coromes.db"
+      DataProtection__KeyPath: /app/data/keys
+      i3x__enabled: "false"
+      MesVisionCollector__Enabled: "false"
+      Upkeep__Mode: disabled
+      Alerting__Mode: disabled
+    secrets:
+      - source: admin_access_code
+        target: Auth__AdminAccessCode
+    volumes:
+      - coromes_blazor_data:/app/data
+    networks:
+      - isolated
+
+  gateway:
+    image: nginx@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${COROMES_STAGING_PORT:-5101}:80"
+    volumes:
+      - ./blazor-gateway.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      coromes-blazor:
+        condition: service_healthy
+        restart: true
+    networks:
+      - ingress
+      - isolated
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+secrets:
+  admin_access_code:
+    file: ${COROMES_ADMIN_CODE_FILE:?Set COROMES_ADMIN_CODE_FILE to an existing private admin-code file}
+
+volumes:
+  coromes_blazor_data:
+
+networks:
+  ingress:
+  isolated:
+    internal: true

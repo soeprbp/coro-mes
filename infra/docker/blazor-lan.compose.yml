@@ -1,0 +1,7 @@
+# Optional internal-network listener. Supply the guest's LAN address explicitly;
+# the base profile's loopback listener remains available for local checks/tunnels.
+# This exposes the existing login over HTTP; it does not provide TLS or SSO.
+services:
+  gateway:
+    ports:
+      - "${COROMES_LAN_ADDRESS:?Set the guest LAN address}:80:80"
