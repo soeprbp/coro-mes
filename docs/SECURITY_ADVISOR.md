@@ -14,6 +14,14 @@ For a stricter local gate:
 .\scripts\security-audit.ps1 -FailOnHeuristicFindings
 ```
 
+## OpenAPI dependency baseline
+
+The standalone `CoroMES.Api` host does not register Swagger or OpenAPI services or endpoints. Its unused `Microsoft.AspNetCore.OpenApi` and `Swashbuckle.AspNetCore` references were removed to eliminate the transitive `Microsoft.OpenApi` 2.0.0 dependency flagged by [GHSA-v5pm-xwqc-g5wc](https://github.com/microsoft/OpenAPI.NET/security/advisories/GHSA-v5pm-xwqc-g5wc). Existing API routes are unchanged. If OpenAPI support is added later, choose compatible patched packages and rerun the full audit before release.
+
+The default audit fails on vulnerable dependencies or failed restore, build, or test steps. Configuration heuristics remain review warnings unless `-FailOnHeuristicFindings` is supplied; a passing dependency audit does not clear the baseline risks below.
+
+Local verification on October 5, 2026: the full audit passed, the solution built with zero warnings and errors, all 23 tests passed, and no vulnerable packages were reported from the configured sources. The 15 configuration heuristic warnings remain for review. Tests used temporary SQLite data and mocked integrations.
+
 ## Review Scope
 
 - API endpoints: authentication, authorization, input validation, rate limits, unsafe verbs, and public static files.
